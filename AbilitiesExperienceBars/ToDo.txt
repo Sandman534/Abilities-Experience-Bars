@@ -2,7 +2,3 @@
 
 Create a level extender-like system. (Lvl 11+, exp multipliers and scalar necessary exp)
 Auto position adjusts system to experience popups. (To avoid the screen right position problems)
-Add some commands. (Like the config.json, but in the console :-P)
-Fix character creating key bug.
-Fix manifest version
-Optimize code.

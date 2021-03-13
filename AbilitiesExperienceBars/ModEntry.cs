@@ -112,9 +112,11 @@ namespace AbilitiesExperienceBars
             helper.Events.Player.Warped += onPlayerWarped;
 
             helper.ConsoleCommands.Add("abilities_change_size", "Changes the box size, only accepts integer values between 1 and 6.\nUsage: abilities_change_size <size>", cm_ChangeSize);
-            helper.ConsoleCommands.Add("abilities_toggle_background", "Toggle the box background.\nUsage: abilities_toggle_background <true/false>", cm_ToggleBackground);
-            helper.ConsoleCommands.Add("abilities_toggle_levelup", "Toggles the level up messages.\nUsage: abilities_toggle_levelup <true/false>", cm_ToggleLevelUpMessage);
-            helper.ConsoleCommands.Add("abilities_toggle_experience", "Toggles the experience infos.\nUsage: abilities_toggle_experience <true/false>", cm_ToggleExperience);
+            helper.ConsoleCommands.Add("abilities_toggle_background", "Switch the box background.\nUsage: abilities_toggle_background <true/false>", cm_ToggleBackground);
+            helper.ConsoleCommands.Add("abilities_toggle_levelup", "Switch the level up messages.\nUsage: abilities_toggle_levelup <true/false>", cm_ToggleLevelUpMessage);
+            helper.ConsoleCommands.Add("abilities_toggle_experience", "Switch the experience infos.\nUsage: abilities_toggle_experience <true/false>", cm_ToggleExperience);
+            helper.ConsoleCommands.Add("abilities_toggle_buttons", "Switch the main buttons.\nUsage: abilities_toggle_background <true/false>", cm_ToggleButtons);
+            helper.ConsoleCommands.Add("abilities_reset", "Resets the config.\nUsage: abilities_reset", cm_Reset);
         }
 
         private void cm_ChangeSize(string command, string[] args)
@@ -156,6 +158,21 @@ namespace AbilitiesExperienceBars
             config.ShowExperienceInfo = state;
             if (state) this.Monitor.Log($"Experience info enabled.", LogLevel.Info);
             else this.Monitor.Log($"Experience info disabled.", LogLevel.Info);
+        }
+        private void cm_ToggleButtons(string command, string[] args)
+        {
+            if (!Context.IsWorldReady) return;
+
+            bool state = bool.Parse(args[0]);
+            config.ShowButtons = state;
+            if (state) this.Monitor.Log($"Experience info enabled.", LogLevel.Info);
+            else this.Monitor.Log($"Experience info disabled.", LogLevel.Info);
+        }
+        private void cm_Reset(string command, string[] args)
+        {
+            if (!Context.IsWorldReady) return;
+
+            resetInfos();
         }
 
 
