@@ -20,6 +20,7 @@ namespace AbilitiesExperienceBars
         private int maxLevel = 10;
         private int levelUpPosY;
         private bool inConfigMode;
+        private int expAdvicePositionX;
 
         //PLAYER INFO VARS
         private int[] playerExperience;
@@ -175,9 +176,20 @@ namespace AbilitiesExperienceBars
             resetInfos();
         }
 
+        private void repositionExpInfo()
+        {
+            if (!Context.IsWorldReady) return;
 
-
-
+            int rightPosX = this.config.mainPosX + backgroundTop.Width * this.config.mainScale;
+            if (rightPosX >= Game1.uiViewport.Width - (backgroundExp.Width * this.config.mainScale))
+            {
+                expAdvicePositionX = -(backgroundExp.Width * this.config.mainScale + (10 * this.config.mainScale));
+            }
+            else
+            {
+                expAdvicePositionX = backgroundTop.Width * this.config.mainScale + 1;
+            }
+        }
 
 
 
@@ -509,10 +521,10 @@ namespace AbilitiesExperienceBars
                     }
                     if (actualExpGainedMessage[i] && this.config.ShowExperienceInfo)
                     {
-                        e.SpriteBatch.Draw(backgroundExp, new Rectangle(barPosX + (backgroundTop.Width * this.config.mainScale) + 1, posControlY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2), backgroundExp.Width * this.config.mainScale, backgroundExp.Height * this.config.mainScale), MyHelper.ChangeColorIntensity(globalChangeColor, 1, expAlpha[i]));
+                        e.SpriteBatch.Draw(backgroundExp, new Rectangle(barPosX + expAdvicePositionX, posControlY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2), backgroundExp.Width * this.config.mainScale, backgroundExp.Height * this.config.mainScale), MyHelper.ChangeColorIntensity(globalChangeColor, 1, expAlpha[i]));
 
                         Vector2 centralizedStringPos = MyHelper.GetStringCenter(expGained[i].ToString(), Game1.dialogueFont);
-                        e.SpriteBatch.DrawString(Game1.dialogueFont, $"+{expGained[i]}", new Vector2(barPosX + ((backgroundTop.Width * this.config.mainScale) + 1) + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(colorsRestoration[i], 0.45f, expAlpha[i]), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
+                        e.SpriteBatch.DrawString(Game1.dialogueFont, $"+{expGained[i]}", new Vector2(barPosX + expAdvicePositionX + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(colorsRestoration[i], 0.45f, expAlpha[i]), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
                     }
                 }
                 else
@@ -573,10 +585,10 @@ namespace AbilitiesExperienceBars
                     }
                     if (actualExpGainedMessage[i] && this.config.ShowExperienceInfo)
                     {
-                        e.SpriteBatch.Draw(backgroundExp, new Rectangle(barPosX + (backgroundTop.Width * this.config.mainScale) + 1, posControlY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2), backgroundExp.Width * this.config.mainScale, backgroundExp.Height * this.config.mainScale), MyHelper.ChangeColorIntensity(globalChangeColor, 1, expAlpha[i]));
+                        e.SpriteBatch.Draw(backgroundExp, new Rectangle(barPosX + expAdvicePositionX, posControlY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2), backgroundExp.Width * this.config.mainScale, backgroundExp.Height * this.config.mainScale), MyHelper.ChangeColorIntensity(globalChangeColor, 1, expAlpha[i]));
 
                         Vector2 centralizedStringPos = MyHelper.GetStringCenter(expGained[i].ToString(), Game1.dialogueFont);
-                        e.SpriteBatch.DrawString(Game1.dialogueFont, $"+{expGained[i]}", new Vector2(barPosX + ((backgroundTop.Width * this.config.mainScale) + 1) + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(colorsRestoration[i], 0.45f, expAlpha[i]), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
+                        e.SpriteBatch.DrawString(Game1.dialogueFont, $"+{expGained[i]}", new Vector2(barPosX + expAdvicePositionX + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(colorsRestoration[i], 0.45f, expAlpha[i]), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
                     }
                 }
 
@@ -630,6 +642,7 @@ namespace AbilitiesExperienceBars
             }
 
             checkMousePosition();
+            repositionExpInfo();
 
             if (Game1.player.currentLocation.name == "Club")
             {
