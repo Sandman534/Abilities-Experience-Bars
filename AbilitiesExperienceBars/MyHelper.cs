@@ -54,6 +54,11 @@ namespace AbilitiesExperienceBars
                             defaultSpacement = defaultSpacement + (((10 * location[1].Length) + 4) * 2.5f);
                             return (int)defaultSpacement;
                         }
+                        else if (locationLevel == 77377)
+                        {
+                            defaultSpacement = 30;
+                            return (int)defaultSpacement;
+                        }
                         else
                         {
                             string baseLevel = $"{locationLevel - 121}";

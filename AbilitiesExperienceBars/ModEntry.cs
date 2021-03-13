@@ -191,11 +191,6 @@ namespace AbilitiesExperienceBars
             }
         }
 
-
-
-
-
-
         private void onPlayerWarped(object sender, WarpedEventArgs e)
         {
             configButtonPosX = MyHelper.AdjustPositionMineLevelWidth(configButtonPosX, e.NewLocation, defaultButtonPosX);
@@ -617,6 +612,8 @@ namespace AbilitiesExperienceBars
                 oldPlayerModdedLevels[2] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
                 oldPlayerModdedExperience[2] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("magic"));
             }
+
+            configButtonPosX = MyHelper.AdjustPositionMineLevelWidth(configButtonPosX, Game1.player.currentLocation, defaultButtonPosX);
         }
 
         private void onUpdate(object sender, UpdateTickedEventArgs e)
