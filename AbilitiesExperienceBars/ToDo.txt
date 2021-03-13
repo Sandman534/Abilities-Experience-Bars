@@ -1,4 +1,3 @@
 ﻿To do:
 
-Create a level extender-like system. (Lvl 11+, exp multipliers and scalar necessary exp)
 Auto position adjusts system to experience popups. (To avoid the screen right position problems)
