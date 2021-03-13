@@ -1,3 +1,0 @@
-﻿To do:
-
-Auto position adjusts system to experience popups. (To avoid the screen right position problems)
