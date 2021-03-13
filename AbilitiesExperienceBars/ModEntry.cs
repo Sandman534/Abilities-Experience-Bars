@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using StardewModdingAPI.Events;
 using StardewModdingAPI;
 using StardewValley.BellsAndWhistles;
@@ -108,7 +110,62 @@ namespace AbilitiesExperienceBars
             helper.Events.Input.ButtonReleased += onButtonReleased;
             helper.Events.GameLoop.SaveLoaded += onSaveLoaded;
             helper.Events.Player.Warped += onPlayerWarped;
+
+            helper.ConsoleCommands.Add("abilities_change_size", "Changes the box size, only accepts integer values between 1 and 6.\nUsage: abilities_change_size <size>", cm_ChangeSize);
+            helper.ConsoleCommands.Add("abilities_toggle_background", "Toggle the box background.\nUsage: abilities_toggle_background <true/false>", cm_ToggleBackground);
+            helper.ConsoleCommands.Add("abilities_toggle_levelup", "Toggles the level up messages.\nUsage: abilities_toggle_levelup <true/false>", cm_ToggleLevelUpMessage);
+            helper.ConsoleCommands.Add("abilities_toggle_experience", "Toggles the experience infos.\nUsage: abilities_toggle_experience <true/false>", cm_ToggleExperience);
         }
+
+        private void cm_ChangeSize(string command, string[] args)
+        {
+            if (!Context.IsWorldReady) return;
+
+            int size = Int32.Parse(args[0]);
+            if (size > 0 && size < 7)
+            {
+                config.mainScale = size;
+                this.Monitor.Log($"Size changed to: {size}.", LogLevel.Info);
+            }
+            else this.Monitor.Log($"Command invalid, please use integer values between 1 and 6.", LogLevel.Error);
+        }
+        private void cm_ToggleBackground(string command, string[] args)
+        {
+            if (!Context.IsWorldReady) return;
+
+            bool state = bool.Parse(args[0]);
+            config.ShowBoxBackground = state;
+            if (state) this.Monitor.Log($"Background enabled.", LogLevel.Info);
+            else this.Monitor.Log($"Background disabled.", LogLevel.Info);
+
+        }
+        private void cm_ToggleLevelUpMessage(string command, string[] args)
+        {
+            if (!Context.IsWorldReady) return;
+
+            bool state = bool.Parse(args[0]);
+            config.ShowLevelUp = state;
+            if (state) this.Monitor.Log($"Level up message enabled.", LogLevel.Info);
+            else this.Monitor.Log($"Level up message disabled.", LogLevel.Info);
+        }
+        private void cm_ToggleExperience(string command, string[] args)
+        {
+            if (!Context.IsWorldReady) return;
+
+            bool state = bool.Parse(args[0]);
+            config.ShowExperienceInfo = state;
+            if (state) this.Monitor.Log($"Experience info enabled.", LogLevel.Info);
+            else this.Monitor.Log($"Experience info disabled.", LogLevel.Info);
+        }
+
+
+
+
+
+
+
+
+
 
         private void onPlayerWarped(object sender, WarpedEventArgs e)
         {
