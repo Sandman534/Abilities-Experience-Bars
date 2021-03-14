@@ -666,6 +666,7 @@ namespace AbilitiesExperienceBars
 
         private void checkExpUp()
         {
+
             for (var i = 0; i < playerExperience.Length; i++)
             {
                 if (playerExperience[i] != oldPlayerExperience[i])
@@ -923,7 +924,7 @@ namespace AbilitiesExperienceBars
                     animatingLevelUp = true;
                 }
             }
-            else if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
+            if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
             {
                 if (oldPlayerModdedLevels[1] != Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill")))
                 {
@@ -935,7 +936,7 @@ namespace AbilitiesExperienceBars
                     animatingLevelUp = true;
                 }
             }
-            else if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
+            if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
             {
                 if (oldPlayerModdedLevels[2] != Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic")))
                 {
