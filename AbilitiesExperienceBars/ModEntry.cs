@@ -615,12 +615,12 @@ namespace AbilitiesExperienceBars
                 oldPlayerModdedLevels[0] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("cooking"));
                 oldPlayerModdedExperience[0] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("cooking"));
             }
-            else if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
+            if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
             {
                 oldPlayerModdedLevels[1] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
                 oldPlayerModdedExperience[1] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
             }
-            else if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
+            if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
             {
                 oldPlayerModdedLevels[2] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
                 oldPlayerModdedExperience[2] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("magic"));
@@ -666,6 +666,7 @@ namespace AbilitiesExperienceBars
 
         private void checkExpUp()
         {
+            var prevIndex = 0;
 
             for (var i = 0; i < playerExperience.Length; i++)
             {
@@ -682,33 +683,42 @@ namespace AbilitiesExperienceBars
             {
                 if (playerModdedExperience[0] != oldPlayerModdedExperience[0])
                 {
-                    expGained[6] = playerModdedExperience[0] - oldPlayerModdedExperience[0];
+                    prevIndex = 6;
+
+                    expGained[prevIndex] = playerModdedExperience[0] - oldPlayerModdedExperience[0];
                     oldPlayerModdedExperience[0] = playerModdedExperience[0];
 
-                    showExpUpAdvice(6);
+                    showExpUpAdvice(prevIndex);
                 }
             }
             if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
             {
                 if (playerModdedExperience[1] != oldPlayerModdedExperience[1])
                 {
-                    expGained[7] = playerModdedExperience[1] - oldPlayerModdedExperience[1];
+                    if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill")) prevIndex = 7;
+                    else prevIndex = 6;
+
+                    expGained[prevIndex] = playerModdedExperience[1] - oldPlayerModdedExperience[1];
                     oldPlayerModdedExperience[1] = playerModdedExperience[1];
 
-                    showExpUpAdvice(7);
+                    showExpUpAdvice(prevIndex);
                 }
             }
             if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
             {
                 if (playerModdedExperience[2] != oldPlayerModdedExperience[2])
                 {
-                    expGained[8] = playerModdedExperience[2] - oldPlayerModdedExperience[2];
+                    if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill") && Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking")) prevIndex = 8;
+                    else if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill") && !Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking")) prevIndex = 7;
+                    else if (!Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill") && Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking")) prevIndex = 7;
+                    else prevIndex = 6;
+
+                    expGained[prevIndex] = playerModdedExperience[2] - oldPlayerModdedExperience[2];
                     oldPlayerModdedExperience[2] = playerModdedExperience[2];
 
-                    showExpUpAdvice(8);
+                    showExpUpAdvice(prevIndex);
                 }
             }
-            
         }
         private void showExpUpAdvice(int skill)
         {
@@ -733,6 +743,7 @@ namespace AbilitiesExperienceBars
                 if (animateSkill[i])
                 {
                     int actualSkillLevel = 0;
+                    int toColor = i;
 
                     if (i < 6)
                     {
@@ -740,17 +751,44 @@ namespace AbilitiesExperienceBars
                     }
                     else
                     {
-                        if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
+                        if (i == 6)
                         {
-                            actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("cooking"));
+                            if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
+                            {
+                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("cooking"));
+                                toColor = 6;
+                            }
+                            else if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
+                            {
+                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
+                                toColor = 7;
+                            }
+                            else if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
+                            {
+                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
+                                toColor = 8;
+                            }
                         }
-                        else if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
+                        else if (i == 7)
                         {
-                            actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
+                            if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking") && Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
+                            {
+                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
+                                toColor = 7;
+                            }
+                            else if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
+                            {
+                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
+                                toColor = 8;
+                            }
                         }
-                        else if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
+                        else if (i == 8)
                         {
-                            actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
+                            if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
+                            {
+                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
+                                toColor = 8;
+                            }
                         }
                     }
 
@@ -761,19 +799,19 @@ namespace AbilitiesExperienceBars
                     {
                         if (actualSkillLevel < 10)
                         {
-                            if (colors[i].R < 255 && colors[i].G < 255 && colors[i].B < 255)
+                            if (colors[toColor].R < 255 && colors[toColor].G < 255 && colors[toColor].B < 255)
                             {
-                                virtualColorValue = colors[i].R + intensity;
-                                if (virtualColorValue < 255) colors[i].R += intensity;
-                                else colors[i].R = 255;
+                                virtualColorValue = colors[toColor].R + intensity;
+                                if (virtualColorValue < 255) colors[toColor].R += intensity;
+                                else colors[toColor].R = 255;
 
-                                virtualColorValue = colors[i].G + intensity;
-                                if (virtualColorValue < 255) colors[i].G += intensity;
-                                else colors[i].G = 255;
+                                virtualColorValue = colors[toColor].G + intensity;
+                                if (virtualColorValue < 255) colors[toColor].G += intensity;
+                                else colors[toColor].G = 255;
 
-                                virtualColorValue = colors[i].B + intensity;
-                                if (virtualColorValue < 255) colors[i].B += intensity;
-                                else colors[i].B = 255;
+                                virtualColorValue = colors[toColor].B + intensity;
+                                if (virtualColorValue < 255) colors[toColor].B += intensity;
+                                else colors[toColor].B = 255;
                             }
                             else
                             {
@@ -782,19 +820,19 @@ namespace AbilitiesExperienceBars
                         }
                         else
                         {
-                            if (finalColors[i].R < 255 && finalColors[i].G < 255 && finalColors[i].B < 255)
+                            if (finalColors[toColor].R < 255 && finalColors[toColor].G < 255 && finalColors[toColor].B < 255)
                             {
-                                virtualColorValue = finalColors[i].R + intensity;
-                                if (virtualColorValue < 255) finalColors[i].R += intensity;
-                                else finalColors[i].R = 255;
+                                virtualColorValue = finalColors[toColor].R + intensity;
+                                if (virtualColorValue < 255) finalColors[toColor].R += intensity;
+                                else finalColors[toColor].R = 255;
 
-                                virtualColorValue = finalColors[i].G + intensity;
-                                if (virtualColorValue < 255) finalColors[i].G += intensity;
-                                else finalColors[i].G = 255;
+                                virtualColorValue = finalColors[toColor].G + intensity;
+                                if (virtualColorValue < 255) finalColors[toColor].G += intensity;
+                                else finalColors[toColor].G = 255;
 
-                                virtualColorValue = finalColors[i].B + intensity;
-                                if (virtualColorValue < 255) finalColors[i].B += intensity;
-                                else finalColors[i].B = 255;
+                                virtualColorValue = finalColors[toColor].B + intensity;
+                                if (virtualColorValue < 255) finalColors[toColor].B += intensity;
+                                else finalColors[toColor].B = 255;
                             }
                             else
                             {
@@ -806,19 +844,19 @@ namespace AbilitiesExperienceBars
                     {
                         if (actualSkillLevel < 10)
                         {
-                            if (colors[i] != colorsRestoration[i])
+                            if (colors[toColor] != colorsRestoration[toColor])
                             {
-                                virtualColorValue = colors[i].R - intensity;
-                                if (virtualColorValue > colorsRestoration[i].R) colors[i].R -= intensity;
-                                else colors[i].R = colorsRestoration[i].R;
+                                virtualColorValue = colors[toColor].R - intensity;
+                                if (virtualColorValue > colorsRestoration[toColor].R) colors[toColor].R -= intensity;
+                                else colors[toColor].R = colorsRestoration[toColor].R;
 
-                                virtualColorValue = colors[i].G - intensity;
-                                if (virtualColorValue > colorsRestoration[i].G) colors[i].G -= intensity;
-                                else colors[i].G = colorsRestoration[i].G;
+                                virtualColorValue = colors[toColor].G - intensity;
+                                if (virtualColorValue > colorsRestoration[toColor].G) colors[toColor].G -= intensity;
+                                else colors[toColor].G = colorsRestoration[toColor].G;
 
-                                virtualColorValue = colors[i].B - intensity;
-                                if (virtualColorValue > colorsRestoration[i].B) colors[i].B -= intensity;
-                                else colors[i].B = colorsRestoration[i].B;
+                                virtualColorValue = colors[toColor].B - intensity;
+                                if (virtualColorValue > colorsRestoration[toColor].B) colors[toColor].B -= intensity;
+                                else colors[toColor].B = colorsRestoration[toColor].B;
                             }
                             else
                             {
@@ -827,19 +865,19 @@ namespace AbilitiesExperienceBars
                         }
                         else
                         {
-                            if (finalColors[i] != colorsRestoration[9])
+                            if (finalColors[toColor] != colorsRestoration[9])
                             {
-                                virtualColorValue = finalColors[i].R - intensity;
-                                if (virtualColorValue > colorsRestoration[9].R) finalColors[i].R -= intensity;
-                                else finalColors[i].R = colorsRestoration[9].R;
+                                virtualColorValue = finalColors[toColor].R - intensity;
+                                if (virtualColorValue > colorsRestoration[9].R) finalColors[toColor].R -= intensity;
+                                else finalColors[toColor].R = colorsRestoration[9].R;
 
-                                virtualColorValue = finalColors[i].G - intensity;
-                                if (virtualColorValue > colorsRestoration[9].G) finalColors[i].G -= intensity;
-                                else finalColors[i].G = colorsRestoration[9].G;
+                                virtualColorValue = finalColors[toColor].G - intensity;
+                                if (virtualColorValue > colorsRestoration[9].G) finalColors[toColor].G -= intensity;
+                                else finalColors[toColor].G = colorsRestoration[9].G;
 
-                                virtualColorValue = finalColors[i].B - intensity;
-                                if (virtualColorValue > colorsRestoration[9].B) finalColors[i].B -= intensity;
-                                else finalColors[i].B = colorsRestoration[9].B;
+                                virtualColorValue = finalColors[toColor].B - intensity;
+                                if (virtualColorValue > colorsRestoration[9].B) finalColors[toColor].B -= intensity;
+                                else finalColors[toColor].B = colorsRestoration[9].B;
                             }
                             else
                             {
