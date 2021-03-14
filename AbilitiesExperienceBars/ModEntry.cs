@@ -114,7 +114,7 @@ namespace AbilitiesExperienceBars
             helper.Events.Player.Warped += onPlayerWarped;
 
             helper.ConsoleCommands.Add("abilities_change_size", "Changes the box size, only accepts integer values between 1 and 6.\nUsage: abilities_change_size <size>", cm_ChangeSize);
-            helper.ConsoleCommands.Add("abilities_change_levelup_duration", "Changes the level up message duration.\nUsage: abilities_change_size <duration>", cm_MessageDuration);
+            helper.ConsoleCommands.Add("abilities_change_levelup_duration", "Changes the level up message duration.\nUsage: abilities_change_levelup_duration <duration>", cm_MessageDuration);
             helper.ConsoleCommands.Add("abilities_toggle_background", "Switch the box background.\nUsage: abilities_toggle_background <true/false>", cm_ToggleBackground);
             helper.ConsoleCommands.Add("abilities_toggle_levelup", "Switch the level up messages.\nUsage: abilities_toggle_levelup <true/false>", cm_ToggleLevelUpMessage);
             helper.ConsoleCommands.Add("abilities_toggle_experience", "Switch the experience infos.\nUsage: abilities_toggle_experience <true/false>", cm_ToggleExperience);
