@@ -90,7 +90,7 @@ namespace AbilitiesExperienceBars
         private ModConfig config;
 
         //TIMER VARS
-        private int timeLeft;
+        private float timeLeft;
         private int[] timeExpMessageLeft = new int[9];
 
         //LEVEL UP VARS
@@ -114,6 +114,7 @@ namespace AbilitiesExperienceBars
             helper.Events.Player.Warped += onPlayerWarped;
 
             helper.ConsoleCommands.Add("abilities_change_size", "Changes the box size, only accepts integer values between 1 and 6.\nUsage: abilities_change_size <size>", cm_ChangeSize);
+            helper.ConsoleCommands.Add("abilities_change_levelup_duration", "Changes the level up message duration.\nUsage: abilities_change_size <duration>", cm_MessageDuration);
             helper.ConsoleCommands.Add("abilities_toggle_background", "Switch the box background.\nUsage: abilities_toggle_background <true/false>", cm_ToggleBackground);
             helper.ConsoleCommands.Add("abilities_toggle_levelup", "Switch the level up messages.\nUsage: abilities_toggle_levelup <true/false>", cm_ToggleLevelUpMessage);
             helper.ConsoleCommands.Add("abilities_toggle_experience", "Switch the experience infos.\nUsage: abilities_toggle_experience <true/false>", cm_ToggleExperience);
@@ -132,6 +133,14 @@ namespace AbilitiesExperienceBars
                 this.Monitor.Log($"Size changed to: {size}.", LogLevel.Info);
             }
             else this.Monitor.Log($"Command invalid, please use integer values between 1 and 6.", LogLevel.Error);
+        }
+        private void cm_MessageDuration(string command, string[] args)
+        {
+            if (!Context.IsWorldReady) return;
+
+            float duration = float.Parse(args[0]);
+            config.LevelUpMessageDuration = duration;
+            this.Monitor.Log($"Duration changed to: {duration}.", LogLevel.Info);
         }
         private void cm_ToggleBackground(string command, string[] args)
         {
@@ -175,6 +184,7 @@ namespace AbilitiesExperienceBars
             if (!Context.IsWorldReady) return;
 
             resetInfos();
+            this.Monitor.Log($"Mod configurations resetted.", LogLevel.Info);
         }
 
         private void repositionExpInfo()
@@ -271,6 +281,7 @@ namespace AbilitiesExperienceBars
             this.config.ShowBoxBackground = true;
             this.config.ShowLevelUp = true;
             this.config.ShowExperienceInfo = true;
+            this.config.LevelUpMessageDuration = 4;
             saveInfo();
             ajustInfos();
         }
@@ -996,7 +1007,7 @@ namespace AbilitiesExperienceBars
             levelUpMessage = Helper.Translation.Get("LevelUpMessage");
 
 
-            timeLeft = (int)this.config.LevelUpMessageDuration * 60;
+            timeLeft = this.config.LevelUpMessageDuration * 60;
             canShowLevelUp = true;
         }
         private void levelUpTimer()
