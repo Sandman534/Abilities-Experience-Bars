@@ -118,7 +118,7 @@ namespace AbilitiesExperienceBars
             helper.ConsoleCommands.Add("abilities_toggle_background", "Switch the box background.\nUsage: abilities_toggle_background <true/false>", cm_ToggleBackground);
             helper.ConsoleCommands.Add("abilities_toggle_levelup", "Switch the level up messages.\nUsage: abilities_toggle_levelup <true/false>", cm_ToggleLevelUpMessage);
             helper.ConsoleCommands.Add("abilities_toggle_experience", "Switch the experience infos.\nUsage: abilities_toggle_experience <true/false>", cm_ToggleExperience);
-            helper.ConsoleCommands.Add("abilities_toggle_buttons", "Switch the main buttons.\nUsage: abilities_toggle_background <true/false>", cm_ToggleButtons);
+            helper.ConsoleCommands.Add("abilities_toggle_buttons", "Switch the main buttons.\nUsage: abilities_toggle_buttons <true/false>", cm_ToggleButtons);
             helper.ConsoleCommands.Add("abilities_reset", "Resets the config.\nUsage: abilities_reset", cm_Reset);
         }
 
