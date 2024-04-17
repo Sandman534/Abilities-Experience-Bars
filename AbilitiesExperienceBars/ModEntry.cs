@@ -285,14 +285,6 @@ namespace AbilitiesExperienceBars
             helper.Events.Input.ButtonReleased += onButtonReleased;
             helper.Events.GameLoop.SaveLoaded += onSaveLoaded;
             helper.Events.Player.Warped += onPlayerWarped;
-
-            helper.ConsoleCommands.Add("abilities_change_size", "Changes the box size, only accepts integer values between 1 and 6.\nUsage: abilities_change_size <size>", cm_ChangeSize);
-            helper.ConsoleCommands.Add("abilities_change_levelup_duration", "Changes the level up message duration.\nUsage: abilities_change_levelup_duration <duration>", cm_MessageDuration);
-            helper.ConsoleCommands.Add("abilities_toggle_background", "Switch the box background.\nUsage: abilities_toggle_background <true/false>", cm_ToggleBackground);
-            helper.ConsoleCommands.Add("abilities_toggle_levelup", "Switch the level up messages.\nUsage: abilities_toggle_levelup <true/false>", cm_ToggleLevelUpMessage);
-            helper.ConsoleCommands.Add("abilities_toggle_experience", "Switch the experience infos.\nUsage: abilities_toggle_experience <true/false>", cm_ToggleExperience);
-            helper.ConsoleCommands.Add("abilities_toggle_buttons", "Switch the main buttons.\nUsage: abilities_toggle_buttons <true/false>", cm_ToggleButtons);
-            helper.ConsoleCommands.Add("abilities_reset", "Resets the config.\nUsage: abilities_reset", cm_Reset);
         }
 
         private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
@@ -396,77 +388,6 @@ namespace AbilitiesExperienceBars
                 );
 
             }
-        }
-
-        private void cm_ChangeSize(string command, string[] args)
-        {
-            if (!Context.IsWorldReady) return;
-
-            int size = Int32.Parse(args[0]);
-            if (size > 0 && size < 7)
-            {
-                config.mainScale = size;
-                this.Monitor.Log($"Size changed to: {size}.", LogLevel.Info);
-            }
-            else this.Monitor.Log($"Command invalid, please use integer values between 1 and 6.", LogLevel.Error);
-        }
-
-        private void cm_MessageDuration(string command, string[] args)
-        {
-            if (!Context.IsWorldReady) return;
-
-            float duration = float.Parse(args[0]);
-            config.LevelUpMessageDuration = duration;
-            this.Monitor.Log($"Duration changed to: {duration}.", LogLevel.Info);
-        }
-
-        private void cm_ToggleBackground(string command, string[] args)
-        {
-            if (!Context.IsWorldReady) return;
-
-            bool state = bool.Parse(args[0]);
-            config.ShowBoxBackground = state;
-            if (state) this.Monitor.Log($"Background enabled.", LogLevel.Info);
-            else this.Monitor.Log($"Background disabled.", LogLevel.Info);
-
-        }
-
-        private void cm_ToggleLevelUpMessage(string command, string[] args)
-        {
-            if (!Context.IsWorldReady) return;
-
-            bool state = bool.Parse(args[0]);
-            config.ShowLevelUp = state;
-            if (state) this.Monitor.Log($"Level up message enabled.", LogLevel.Info);
-            else this.Monitor.Log($"Level up message disabled.", LogLevel.Info);
-        }
-
-        private void cm_ToggleExperience(string command, string[] args)
-        {
-            if (!Context.IsWorldReady) return;
-
-            bool state = bool.Parse(args[0]);
-            config.ShowExperienceInfo = state;
-            if (state) this.Monitor.Log($"Experience info enabled.", LogLevel.Info);
-            else this.Monitor.Log($"Experience info disabled.", LogLevel.Info);
-        }
-
-        private void cm_ToggleButtons(string command, string[] args)
-        {
-            if (!Context.IsWorldReady) return;
-
-            bool state = bool.Parse(args[0]);
-            config.ShowButtons = state;
-            if (state) this.Monitor.Log($"Experience info enabled.", LogLevel.Info);
-            else this.Monitor.Log($"Experience info disabled.", LogLevel.Info);
-        }
-
-        private void cm_Reset(string command, string[] args)
-        {
-            if (!Context.IsWorldReady) return;
-
-            resetInfos();
-            this.Monitor.Log($"Mod configurations resetted.", LogLevel.Info);
         }
 
         private void repositionExpInfo()
@@ -988,9 +909,7 @@ namespace AbilitiesExperienceBars
             if (!Context.IsWorldReady || Game1.CurrentEvent != null) return;
 
             if (e.Button == SButton.PageDown)
-            {
                 this.Monitor.Log($"Current location: {Game1.player.currentLocation.Name}", LogLevel.Info);
-            }
 
             Vector2 mousePos;
             mousePos.X = Game1.getMousePosition(true).X;
@@ -1006,17 +925,13 @@ namespace AbilitiesExperienceBars
             }
             //Reset Box Position - Button
             if (e.Button == this.config.ResetKey && inConfigMode)
-            {
                 resetInfos();
-            }
 
             //Config button click check - Button
             if (e.Button == this.config.ConfigKey)
             {
                 if (!this.config.ShowUI)
-                {
                     toggleUI();
-                }
 
                 switch (inConfigMode)
                 {
@@ -1041,13 +956,10 @@ namespace AbilitiesExperienceBars
             {
                 if (e.Button == SButton.MouseLeft || e.Button == this.config.ConfigKey)
                 {
-                    if (mousePos.X >= configButtonPosX && mousePos.X <= configButtonPosX + (buttonConfig.Width * 3) &&
-                        mousePos.Y >= configButtonPosY && mousePos.Y <= configButtonPosY + (buttonConfig.Height * 3))
+                    if (mousePos.X >= configButtonPosX && mousePos.X <= configButtonPosX + (buttonConfig.Width * 3) && mousePos.Y >= configButtonPosY && mousePos.Y <= configButtonPosY + (buttonConfig.Height * 3))
                     {
                         if (!this.config.ShowUI)
-                        {
                             toggleUI();
-                        }
 
                         switch (inConfigMode)
                         {
@@ -1082,9 +994,7 @@ namespace AbilitiesExperienceBars
                             mousePos.Y >= configButtonPosY && mousePos.Y <= configButtonPosY + (buttonConfig.Height * 3))
                         {
                             if (!this.config.ShowUI)
-                            {
                                 toggleUI();
-                            }
 
                             switch (inConfigMode)
                             {
@@ -1123,9 +1033,7 @@ namespace AbilitiesExperienceBars
                         increaseSizeButtonColor = Color.White;
                         this.config.mainScale -= 1;
                         if (this.config.mainScale == 1)
-                        {
                             decreaseSizeButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-                        }
                         saveInfo();
                     }
                 }
@@ -1140,9 +1048,7 @@ namespace AbilitiesExperienceBars
                         decreaseSizeButtonColor = Color.White;
                         this.config.mainScale += 1;
                         if (this.config.mainScale == 5)
-                        {
                             increaseSizeButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-                        }
                         saveInfo();
                     }
                 }
@@ -1275,18 +1181,21 @@ namespace AbilitiesExperienceBars
             {
                 blockActions();
             }
+
             //CONFIG KEY
             else if (mousePos.X >= configButtonPosX && mousePos.X <= configButtonPosX + (buttonConfig.Width * 3) &&
                 mousePos.Y >= configButtonPosY && mousePos.Y <= configButtonPosY + (buttonConfig.Height * 3))
             {
                 blockActions();
             }
+
             //TOGGLE UI
             else if (mousePos.X >= configButtonPosX + 75 && mousePos.X <= configButtonPosX + 75 + (buttonConfig.Width * 3) &&
                 mousePos.Y >= configButtonPosY && mousePos.Y <= configButtonPosY + (buttonConfig.Height * 3))
             {
                 blockActions();
             }
+
             //Box click check
             else if (mousePos.X >= this.config.mainPosX && mousePos.X <= this.config.mainPosX + (backgroundTop.Width * this.config.mainScale) &&
                 mousePos.Y >= this.config.mainPosY && mousePos.Y <= this.config.mainPosY + totalBackgroundSize &&
@@ -1294,6 +1203,7 @@ namespace AbilitiesExperienceBars
             {
                 blockActions();
             }
+
             //Decrease button click check
             else if (mousePos.X >= this.config.mainPosX && mousePos.X <= this.config.mainPosX + (buttonDecreaseSize.Width * 3) &&
                 mousePos.Y >= this.config.mainPosY - 30 && mousePos.Y <= (this.config.mainPosY - 30) + (buttonDecreaseSize.Height * 3) &&
@@ -1301,6 +1211,7 @@ namespace AbilitiesExperienceBars
             {
                 blockActions();
             }
+
             //Increase button click check
             else if (mousePos.X >= this.config.mainPosX + 25 && mousePos.X <= (this.config.mainPosX + 25) + (buttonDecreaseSize.Width * 3) &&
                 mousePos.Y >= this.config.mainPosY - 30 && mousePos.Y <= (this.config.mainPosY - 30) + (buttonDecreaseSize.Height * 3) &&
@@ -1308,6 +1219,7 @@ namespace AbilitiesExperienceBars
             {
                 blockActions();
             }
+
             //Background toggler button check click
             else if (mousePos.X >= this.config.mainPosX + 75 && mousePos.X <= (this.config.mainPosX + 75) + (buttonDecreaseSize.Width * 3) &&
                 mousePos.Y >= this.config.mainPosY - 30 && mousePos.Y <= (this.config.mainPosY - 30) + (buttonDecreaseSize.Height * 3) &&
@@ -1315,6 +1227,7 @@ namespace AbilitiesExperienceBars
             {
                 blockActions();
             }
+
             //Levelup toggler button check click
             else if (mousePos.X >= this.config.mainPosX + 100 && mousePos.X <= (this.config.mainPosX + 100) + (buttonDecreaseSize.Width * 3) &&
                 mousePos.Y >= this.config.mainPosY - 30 && mousePos.Y <= (this.config.mainPosY - 30) + (buttonDecreaseSize.Height * 3) &&
@@ -1322,6 +1235,7 @@ namespace AbilitiesExperienceBars
             {
                 blockActions();
             }
+
             //Experience toggler button check click
             else if (mousePos.X >= this.config.mainPosX + 125 && mousePos.X <= (this.config.mainPosX + 125) + (buttonDecreaseSize.Width * 3) &&
                 mousePos.Y >= this.config.mainPosY - 30 && mousePos.Y <= (this.config.mainPosY - 30) + (buttonDecreaseSize.Height * 3) &&
@@ -1329,6 +1243,7 @@ namespace AbilitiesExperienceBars
             {
                 blockActions();
             }
+
             else
             {
                 unblockActions();

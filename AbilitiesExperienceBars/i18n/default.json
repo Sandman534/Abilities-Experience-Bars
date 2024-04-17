@@ -1,3 +1,27 @@
 {
-  "LevelUpMessage": "Level Up!"
+  "LevelUpMessage": "Level Up!",
+  "ToggleKey": "Toggle",
+  "ToggleKeyT": "Toggle the display of the window",
+  "ConfigKey": "Configuration",
+  "ConfigKeyT": "Starts configuration mode",
+  "ResetKey": "Reset Config",
+  "ResetKeyT": "Resets the config",
+  "ShowButtons": "Buttons",
+  "ShowButtonsT": "Switch the main buttons",
+  "ShowExperienceInfo": "Experience Text",
+  "ShowExperienceInfoT": "Switch the experience numbers",
+  "ShowBoxBackground": "Window Background",
+  "ShowBoxBackgroundT": "Switch the box background",
+  "ShowLevelUp": "Level Up Display",
+  "ShowLevelUpT": "Switch the level up messages",
+  "ShowUI": "Show Interface",
+  "ShowUIT": "Controls the display of the window",
+  "LevelUpMessageDuration": "Level Up Duration",
+  "LevelUpMessageDurationT": "Changes the level up message duration",
+  "mainPosX": "X Coordinate",
+  "mainPosXT": "X position of the window",
+  "mainPosY": "Y Coordinate",
+  "mainPosYT": "Y position of the window",
+  "mainScale": "Window Scale",
+  "mainScaleT": "Changes the box size, only accepts integer values between 1 and 6"
 }
