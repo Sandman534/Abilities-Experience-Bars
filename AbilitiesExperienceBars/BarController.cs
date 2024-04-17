@@ -12,17 +12,11 @@ namespace AbilitiesExperienceBars
         {
             float percentage;
             if (level >= maxPossibleLevel)
-            {
                 percentage = barSize.X;
-            }
             else if (level == 0)
-            {
                 percentage = ((float)actualExp / (float)expPerLevel[level]) * barSize.X;
-            }
             else
-            {
                 percentage = ((float)actualExp - (float)expPerLevel[level - 1]) / ((float)expPerLevel[level] - (float)expPerLevel[level - 1]) * barSize.X;
-            }
 
             Rectangle barRect = new Rectangle((int)barPosition.X, (int)barPosition.Y, (int)percentage * scale, (int)barSize.Y * scale);
             return barRect;
@@ -32,17 +26,11 @@ namespace AbilitiesExperienceBars
             string expText;
 
             if (level == 0)
-            {
                 expText = $"{actualExp}/{expPerLevel[level]}";
-            }
             else if (level >= maxPossibleLevel)
-            {
                 expText = $"{actualExp} exp.";
-            }
             else
-            {
                 expText = $"{actualExp - expPerLevel[level - 1]}/{expPerLevel[level] - expPerLevel[level - 1]}";
-            }
 
             return expText;
         }
@@ -52,11 +40,8 @@ namespace AbilitiesExperienceBars
 
             for (var i = 0; i < barQuantity - 1; i++)
             {
-                if (mousePos.X >= initialPos.X && mousePos.X <= barSize.X &&
-                    mousePos.Y >= initialPos.Y + (barSpacement * i) && mousePos.Y <= barSize.Y)
-                {
+                if (mousePos.X >= initialPos.X && mousePos.X <= barSize.X && mousePos.Y >= initialPos.Y + (barSpacement * i) && mousePos.Y <= barSize.Y)
                     infoPosition = new Vector2(initialPos.X, initialPos.Y + (barSpacement * i));
-                }
             }
 
             return infoPosition;

@@ -1,20 +1,214 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using StardewModdingAPI.Events;
-using StardewModdingAPI;
-using StardewValley.BellsAndWhistles;
-using StardewValley;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using SpaceCore;
+using SpaceShared.APIs;
+using StardewModdingAPI;
+using StardewModdingAPI.Events;
+using StardewValley;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace AbilitiesExperienceBars
 {
+    public class skillHolder
+    {
+        private string skillID;
+
+        public Texture2D skillIcon;
+
+        public Color skillColor;
+        public Color skillRestorationColor;
+        public Color skillFinalColor = new Color(150, 175, 55);
+        public Color skillGoldColor = new Color(150, 175, 55);
+
+        public int iconIndex;
+        public int colorIndex;
+
+        public int currentEXP;
+        public int previousEXP;
+        public int currentLevel;
+        public int previousLevel;
+
+        public bool animateSkill;
+        public bool expIncreasing;
+        public bool actualExpGainedMessage;
+        public int expGained;
+        public byte expAlpha;
+        public bool inIncrease;
+        public bool inWait;
+        public bool inDecrease;
+
+        public int timeExpMessageLeft;
+
+        public skillHolder(IModHelper Helper, string ID, string iconFilename, Color skillColorCode)
+        {
+            // Set the skill ID
+            skillID = ID;
+            //iconIndex = iIndex;
+            //colorIndex = cIndex;
+
+            // Load Skill Icon
+            skillIcon = Helper.ModContent.Load<Texture2D>("assets/ui/icons/" + iconFilename + ".png");
+
+            // Load Colors
+            skillColor = skillColorCode;
+            skillRestorationColor = skillColorCode;
+
+            // Set Current Data
+            setCurrentData();
+        }
+
+        public void setPreviousData()
+        {
+            // Stardew Base Skills
+            if (skillID == "farming")
+            {
+                previousLevel = Game1.player.farmingLevel.Value;
+                previousEXP = Game1.player.experiencePoints[0];
+            }
+            else if (skillID == "fishing")
+            {
+                previousLevel = Game1.player.fishingLevel.Value;
+                previousEXP = Game1.player.experiencePoints[1];
+            }
+            else if (skillID == "foraging")
+            {
+                previousLevel = Game1.player.foragingLevel.Value;
+                previousEXP = Game1.player.experiencePoints[2];
+            }
+            else if (skillID == "mining")
+            {
+                previousLevel = Game1.player.miningLevel.Value;
+                previousEXP = Game1.player.experiencePoints[3];
+            }
+            else if (skillID == "combat")
+            {
+                previousLevel = Game1.player.combatLevel.Value;
+                previousEXP = Game1.player.experiencePoints[4];
+            }
+
+            // Mod Added Skills
+            else
+            {
+                previousLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill(skillID));
+                previousEXP = Game1.player.GetCustomSkillExperience(Skills.GetSkill(skillID));
+            }
+        }
+
+        public void setCurrentData()
+        {
+            // Stardew Base Skills
+            if (skillID == "farming")
+            {
+                currentLevel = Game1.player.farmingLevel.Value;
+                currentEXP = Game1.player.experiencePoints[0];
+            }
+            else if (skillID == "fishing")
+            {
+                currentLevel = Game1.player.fishingLevel.Value;
+                currentEXP = Game1.player.experiencePoints[1];
+            }
+            else if (skillID == "foraging")
+            {
+                currentLevel = Game1.player.foragingLevel.Value;
+                currentEXP = Game1.player.experiencePoints[2];
+            }
+            else if (skillID == "mining")
+            {
+                currentLevel = Game1.player.miningLevel.Value;
+                currentEXP = Game1.player.experiencePoints[3];
+            }
+            else if (skillID == "combat")
+            {
+                currentLevel = Game1.player.combatLevel.Value;
+                currentEXP = Game1.player.experiencePoints[4];
+            }
+
+            // Mod Added Skills
+            else
+            {
+                currentLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill(skillID));
+                currentEXP = Game1.player.GetCustomSkillExperience(Skills.GetSkill(skillID));
+            }
+        }
+
+        public void ExperienceAlpha(byte intensity)
+        {
+            if (inIncrease)
+            {
+                int virtualAlphaValue = expAlpha + intensity;
+                if (virtualAlphaValue < 255) 
+                    expAlpha += intensity;
+                else
+                {
+                    expAlpha = 255;
+                    inIncrease = false;
+                    inWait = true;
+                }
+            }
+            else if (inWait)
+            {
+                if (timeExpMessageLeft > 0)
+                    timeExpMessageLeft--;
+                else
+                {
+                    inWait = false;
+                    inDecrease = true;
+                }
+            }
+            else if (inDecrease)
+            {
+                int virtualAlphaValue = expAlpha - intensity;
+                if (virtualAlphaValue > 0)
+                    expAlpha -= intensity;
+                else
+                {
+                    expAlpha = 0;
+                    inDecrease = false;
+                    actualExpGainedMessage = false;
+                }
+            }
+        }
+
+        public bool GainLevel()
+        {
+            if (currentLevel == previousLevel) return false;
+
+            // Set Level
+            previousLevel = currentLevel;
+            return true;
+        }
+
+        public void GainExperience()
+        {
+            if (currentEXP == previousEXP) return;
+
+            // Set Experience Values
+            expGained = currentEXP - previousEXP;
+            previousEXP = currentEXP;
+
+            // Set Experience Values
+            inIncrease = true;
+            actualExpGainedMessage = true;
+            timeExpMessageLeft = 3 * 60;
+            expAlpha = 0;
+
+            // Set Experience Bools
+            expIncreasing = true;
+            animateSkill = true;
+
+        }
+    }
+
     public class ModEntry : StardewModdingAPI.Mod
     {
-        #region //Variables
-        //PRIVATE VARS
+        #region // Variables
+
+        // Holds all player skills
+        private List<skillHolder> playerSkills = new List<skillHolder>();
+
+        // Private Variables
         private int configButtonPosX = 25, configButtonPosY = 10;
         private int defaultButtonPosX = 25, defaultButtonPosY = 10;
         private int maxLevel = 10;
@@ -22,17 +216,7 @@ namespace AbilitiesExperienceBars
         private bool inConfigMode;
         private int expAdvicePositionX;
 
-        //PLAYER INFO VARS
-        private int[] playerExperience;
-        private int[] oldPlayerExperience = new int[10];
-        private int[] playerModdedExperience = new int[3];
-        private int[] oldPlayerModdedExperience = new int[3];
-        private int[] playerLevels;
-        private int[] oldPlayerLevels;
-        private int[] oldPlayerModdedLevels = new int[3];
-
-        //SPRITE VARS
-        private Texture2D[] icons;
+        // Sprite Variables
         private Texture2D backgroundTop,
             backgroundBottom,
             backgroundFiller,
@@ -52,10 +236,7 @@ namespace AbilitiesExperienceBars
             buttonHidden,
             buttonReset;
 
-        //COLOR VARS
-        private Color[] colors;
-        private Color[] finalColors;
-        private Color[] colorsRestoration;
+        // Color Variables
         private Color globalChangeColor = Color.White;
         private Color decreaseSizeButtonColor = Color.White,
             increaseSizeButtonColor = Color.White,
@@ -63,37 +244,30 @@ namespace AbilitiesExperienceBars
             levelUpButtonColor = Color.White,
             experienceButtonColor = Color.White;
 
-        //GLOBAL INFO VARS
+        // Global Info Variables
         public int barQuantity = 5;
         private int barSpacement = 10;
         public bool luckCompatibility, cookingCompatibility, magicCompatibility, loveCookingCompatibility,
             luckCheck, cookingCheck, magicCheck, loveCookingCheck;
 
-        //ANIMATION VARS
+        // Animation Variables
         public bool animatingBox, animatingLevelUp;
         public Vector2 animDestPosBox, animDestPosLevelUp;
         public string animBoxDir, animLevelUpDir;
 
-        //CONTROL VARS
+        // Control Variables
         private bool draggingBox;
         private bool canShowLevelUp;
         private bool canCountTimer;
-        private bool[] animateSkill = new bool[9];
-        private bool[] expIncreasing = new bool[9];
-        private bool[] actualExpGainedMessage = new bool[9];
-        private int[] expGained = new int[9];
-        private byte[] expAlpha = new byte[9];
-        private bool[] inIncrease = new bool[9], inWait = new bool[9], inDecrease = new bool[9];
-        
-        //DATA VARS
+
+        // Data Variables
         public ModEntry instance;
         private ModConfig config;
 
-        //TIMER VARS
+        // Timer Variables
         private float timeLeft;
-        private int[] timeExpMessageLeft = new int[9];
 
-        //LEVEL UP VARS
+        // Level Up Variables
         Texture2D levelUpIcon;
         string levelUpMessage;
         #endregion
@@ -103,9 +277,8 @@ namespace AbilitiesExperienceBars
             instance = this;
             getInfo();
             loadTextures();
-            getCompatibleMods();
-            loadColors();
 
+            helper.Events.GameLoop.GameLaunched += OnGameLaunched;
             helper.Events.Display.RenderedHud += onRenderedHud;
             helper.Events.GameLoop.UpdateTicked += onUpdate;
             helper.Events.Input.ButtonPressed += onButtonPressed;
@@ -122,6 +295,109 @@ namespace AbilitiesExperienceBars
             helper.ConsoleCommands.Add("abilities_reset", "Resets the config.\nUsage: abilities_reset", cm_Reset);
         }
 
+        private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
+        {
+            var configMenu = Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+            if (configMenu != null)
+            {
+                configMenu.Register(
+                    mod: ModManifest,
+                    reset: () => config = new ModConfig(),
+                    save: () => Helper.WriteConfig(config)
+                );
+
+                // Keybinds
+                configMenu.AddKeybind(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ToggleKey"),
+                    tooltip: () => Helper.Translation.Get("ToggleKeyT"),
+                    getValue: () => config.ToggleKey,
+                    setValue: value => config.ToggleKey = value
+                );
+                configMenu.AddKeybind(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ConfigKey"),
+                    tooltip: () => Helper.Translation.Get("ConfigKeyT"),
+                    getValue: () => config.ConfigKey,
+                    setValue: value => config.ConfigKey = value
+                );
+                configMenu.AddKeybind(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ResetKey"),
+                    tooltip: () => Helper.Translation.Get("ResetKeyT"),
+                    getValue: () => config.ResetKey,
+                    setValue: value => config.ResetKey = value
+                );
+
+                // Toggles
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowButtons"),
+                    tooltip: () => Helper.Translation.Get("ShowButtonsT"),
+                    getValue: () => config.ShowButtons,
+                    setValue: value => config.ShowButtons = value
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowExperienceInfo"),
+                    tooltip: () => Helper.Translation.Get("ShowExperienceInfoT"),
+                    getValue: () => config.ShowExperienceInfo,
+                    setValue: value => config.ShowExperienceInfo = value
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowBoxBackground"),
+                    tooltip: () => Helper.Translation.Get("ShowBoxBackgroundT"),
+                    getValue: () => config.ShowBoxBackground,
+                    setValue: value => config.ShowBoxBackground = value
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowLevelUp"),
+                    tooltip: () => Helper.Translation.Get("ShowLevelUpT"),
+                    getValue: () => config.ShowLevelUp,
+                    setValue: value => config.ShowLevelUp = value
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowUI"),
+                    tooltip: () => Helper.Translation.Get("ShowUIT"),
+                    getValue: () => config.ShowUI,
+                    setValue: value => config.ShowUI = value
+                );
+
+                configMenu.AddNumberOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("LevelUpMessageDuration"),
+                    tooltip: () => Helper.Translation.Get("LevelUpMessageDurationT"),
+                    getValue: () => config.LevelUpMessageDuration,
+                    setValue: value => config.LevelUpMessageDuration = value
+                );
+                configMenu.AddNumberOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("mainPosX"),
+                    tooltip: () => Helper.Translation.Get("mainPosXT"),
+                    getValue: () => config.mainPosX,
+                    setValue: value => config.mainPosX = value
+                );
+                configMenu.AddNumberOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("mainPosY"),
+                    tooltip: () => Helper.Translation.Get("mainPosYT"),
+                    getValue: () => config.mainPosY,
+                    setValue: value => config.mainPosY = value
+                );
+                configMenu.AddNumberOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("mainScale"),
+                    tooltip: () => Helper.Translation.Get("mainScaleT"),
+                    getValue: () => config.mainScale,
+                    setValue: value => config.mainScale = value
+                );
+
+            }
+        }
+
         private void cm_ChangeSize(string command, string[] args)
         {
             if (!Context.IsWorldReady) return;
@@ -134,6 +410,7 @@ namespace AbilitiesExperienceBars
             }
             else this.Monitor.Log($"Command invalid, please use integer values between 1 and 6.", LogLevel.Error);
         }
+
         private void cm_MessageDuration(string command, string[] args)
         {
             if (!Context.IsWorldReady) return;
@@ -142,6 +419,7 @@ namespace AbilitiesExperienceBars
             config.LevelUpMessageDuration = duration;
             this.Monitor.Log($"Duration changed to: {duration}.", LogLevel.Info);
         }
+
         private void cm_ToggleBackground(string command, string[] args)
         {
             if (!Context.IsWorldReady) return;
@@ -152,6 +430,7 @@ namespace AbilitiesExperienceBars
             else this.Monitor.Log($"Background disabled.", LogLevel.Info);
 
         }
+
         private void cm_ToggleLevelUpMessage(string command, string[] args)
         {
             if (!Context.IsWorldReady) return;
@@ -161,6 +440,7 @@ namespace AbilitiesExperienceBars
             if (state) this.Monitor.Log($"Level up message enabled.", LogLevel.Info);
             else this.Monitor.Log($"Level up message disabled.", LogLevel.Info);
         }
+
         private void cm_ToggleExperience(string command, string[] args)
         {
             if (!Context.IsWorldReady) return;
@@ -170,6 +450,7 @@ namespace AbilitiesExperienceBars
             if (state) this.Monitor.Log($"Experience info enabled.", LogLevel.Info);
             else this.Monitor.Log($"Experience info disabled.", LogLevel.Info);
         }
+
         private void cm_ToggleButtons(string command, string[] args)
         {
             if (!Context.IsWorldReady) return;
@@ -179,6 +460,7 @@ namespace AbilitiesExperienceBars
             if (state) this.Monitor.Log($"Experience info enabled.", LogLevel.Info);
             else this.Monitor.Log($"Experience info disabled.", LogLevel.Info);
         }
+
         private void cm_Reset(string command, string[] args)
         {
             if (!Context.IsWorldReady) return;
@@ -193,13 +475,9 @@ namespace AbilitiesExperienceBars
 
             int rightPosX = this.config.mainPosX + backgroundTop.Width * this.config.mainScale;
             if (rightPosX >= Game1.uiViewport.Width - (backgroundExp.Width * this.config.mainScale))
-            {
                 expAdvicePositionX = -(backgroundExp.Width * this.config.mainScale + (10 * this.config.mainScale));
-            }
             else
-            {
                 expAdvicePositionX = backgroundTop.Width * this.config.mainScale + 1;
-            }
         }
 
         private void onPlayerWarped(object sender, WarpedEventArgs e)
@@ -212,6 +490,7 @@ namespace AbilitiesExperienceBars
             this.config = this.Helper.ReadConfig<ModConfig>();
             ajustInfos();
         }
+
         private void saveInfo()
         {
             this.Helper.WriteConfig(config);
@@ -226,9 +505,8 @@ namespace AbilitiesExperienceBars
                 decreaseSizeButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
             }
             else
-            {
                 decreaseSizeButtonColor = Color.White;
-            }
+
             //Adjust Increase Size Button color and value
             if (this.config.mainScale > 5 || this.config.mainScale == 5)
             {
@@ -236,43 +514,33 @@ namespace AbilitiesExperienceBars
                 increaseSizeButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
             }
             else
-            {
                 increaseSizeButtonColor = Color.White;
-            }
+
             //Adjust Background Button color
             if (!this.config.ShowBoxBackground)
-            {
                 backgroundButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-            }
             else
-            {
                 backgroundButtonColor = Color.White;
-            }
+
             //Adjust Level up Button color
             if (!this.config.ShowLevelUp)
-            {
                 levelUpButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-            }
             else
-            {
                 levelUpButtonColor = Color.White;
-            }
+
             //Adjust Experience Button color
             if (!this.config.ShowExperienceInfo)
-            {
                 experienceButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-            }
             else
-            {
                 experienceButtonColor = Color.White;
-            }
+
             //Level up message duration
             if (this.config.LevelUpMessageDuration < 1)
-            {
                 this.config.LevelUpMessageDuration = 1;
-            }
+
             saveInfo();
         }
+
         private void resetInfos()
         {
             this.config.mainPosX = 25;
@@ -288,113 +556,60 @@ namespace AbilitiesExperienceBars
 
         private void loadTextures()
         {
-            backgroundTop = Helper.Content.Load<Texture2D>("assets/ui/boxes/backgroundTop.png", ContentSource.ModFolder);
-            backgroundBottom = Helper.Content.Load<Texture2D>("assets/ui/boxes/backgroundBottom.png", ContentSource.ModFolder);
-            backgroundFiller = Helper.Content.Load<Texture2D>("assets/ui/boxes/backgroundFiller.png", ContentSource.ModFolder);
+            backgroundTop = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundTop.png");
+            backgroundBottom = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundBottom.png");
+            backgroundFiller = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundFiller.png");
 
-            backgroundBar = Helper.Content.Load<Texture2D>("assets/ui/boxes/backgroundBar.png", ContentSource.ModFolder);
-            barFiller = Helper.Content.Load<Texture2D>("assets/ui/boxes/barFiller.png", ContentSource.ModFolder);
+            backgroundBar = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundBar.png");
+            barFiller = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/barFiller.png");
 
-            backgroundExp = Helper.Content.Load<Texture2D>("assets/ui/boxes/expHolder.png", ContentSource.ModFolder);
-            backgroundLevelUp = Helper.Content.Load<Texture2D>("assets/ui/boxes/backgroundLevelUp.png", ContentSource.ModFolder);
+            backgroundExp = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/expHolder.png");
+            backgroundLevelUp = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundLevelUp.png");
 
-            buttonConfig = Helper.Content.Load<Texture2D>("assets/ui/boxes/iconBoxConfig.png", ContentSource.ModFolder);
-            buttonConfigApply = Helper.Content.Load<Texture2D>("assets/ui/boxes/checkIcon.png", ContentSource.ModFolder);
-            buttonDecreaseSize = Helper.Content.Load<Texture2D>("assets/ui/boxes/decreaseSize.png", ContentSource.ModFolder);
-            buttonIncreaseSize = Helper.Content.Load<Texture2D>("assets/ui/boxes/increaseSize.png", ContentSource.ModFolder);
-            backgroundButton = Helper.Content.Load<Texture2D>("assets/ui/boxes/backgroundButton.png", ContentSource.ModFolder);
-            levelUpButton = Helper.Content.Load<Texture2D>("assets/ui/boxes/levelUpButton.png", ContentSource.ModFolder);
-            experienceButton = Helper.Content.Load<Texture2D>("assets/ui/boxes/experienceButton.png", ContentSource.ModFolder);
-            buttonVisibility = Helper.Content.Load<Texture2D>("assets/ui/boxes/visibleIcon.png", ContentSource.ModFolder);
-            buttonHidden = Helper.Content.Load<Texture2D>("assets/ui/boxes/hiddenIcon.png", ContentSource.ModFolder);
-            buttonReset = Helper.Content.Load<Texture2D>("assets/ui/boxes/resetButton.png", ContentSource.ModFolder);
+            buttonConfig = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/iconBoxConfig.png");
+            buttonConfigApply = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/checkIcon.png");
+            buttonDecreaseSize = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/decreaseSize.png");
+            buttonIncreaseSize = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/increaseSize.png");
+            backgroundButton = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundButton.png");
+            levelUpButton = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/levelUpButton.png");
+            experienceButton = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/experienceButton.png");
+            buttonVisibility = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/visibleIcon.png");
+            buttonHidden = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/hiddenIcon.png");
+            buttonReset = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/resetButton.png");
 
-            backgroundLevelUp = Helper.Content.Load<Texture2D>("assets/ui/boxes/backgroundLevelUp.png", ContentSource.ModFolder);
+            backgroundLevelUp = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundLevelUp.png");
 
-            backgroundBoxConfig = Helper.Content.Load<Texture2D>("assets/ui/boxes/backgroundBoxConfig.png", ContentSource.ModFolder);
-
-            icons = new Texture2D[]
-            {
-                Helper.Content.Load<Texture2D>("assets/ui/icons/farming.png", ContentSource.ModFolder),
-                Helper.Content.Load<Texture2D>("assets/ui/icons/fishing.png", ContentSource.ModFolder),
-                Helper.Content.Load<Texture2D>("assets/ui/icons/foraging.png", ContentSource.ModFolder),
-                Helper.Content.Load<Texture2D>("assets/ui/icons/mining.png", ContentSource.ModFolder),
-                Helper.Content.Load<Texture2D>("assets/ui/icons/combat.png", ContentSource.ModFolder),
-                Helper.Content.Load<Texture2D>("assets/ui/icons/luck.png", ContentSource.ModFolder),
-                Helper.Content.Load<Texture2D>("assets/ui/icons/cooking.png", ContentSource.ModFolder), //Cooking
-                Helper.Content.Load<Texture2D>("assets/ui/icons/loveCooking.png", ContentSource.ModFolder), //Love of Cooking
-                Helper.Content.Load<Texture2D>("assets/ui/icons/magic.png", ContentSource.ModFolder),
-            };
-        }
-        private void loadColors()
-        {
-            colors = new Color[]
-            {
-                new Color( 115, 150, 56 ),  // [0] GREEN
-                new Color( 117, 150, 150 ), // [1] BLUE
-                new Color( 145, 102, 0 ),   // [2] BROWN
-                new Color( 150, 80, 120 ), // [3] PINK GRAY
-                new Color( 150, 31, 0 ),    // [4] RED
-                new Color( 150, 150, 0 ),   // [5] YELLOW (Luck Skill)
-                new Color( 165, 100, 30 ),   // [6] ORANGE (Cooking Skill)
-                new Color( 150, 55, 5 ),    // [7] ORANGE RED (Love Cooking Skill)
-                new Color( 155, 25, 135 ),  // [8] PURPLE (Magic Skill)
-            };
-            finalColors = new Color[]
-            {
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-            };
-            colorsRestoration = new Color[]
-            {
-                new Color( 115, 150, 56 ),  // [0] GREEN
-                new Color( 117, 150, 150 ), // [1] BLUE
-                new Color( 145, 102, 0 ),   // [2] BROWN
-                new Color( 150, 80, 120 ), // [3] PINK GRAY
-                new Color( 150, 31, 0 ),    // [4] RED
-                new Color( 150, 150, 0 ),   // [5] YELLOW (Luck Skill)
-                new Color( 165, 100, 30 ),   // [6] ORANGE (Cooking Skill)
-                new Color( 150, 55, 5 ),    // [7] ORANGE RED (Love Cooking Skill)
-                new Color( 155, 25, 135 ),  // [8] PURPLE (Magic Skill)
-                new Color( 150, 175, 55 ),  // [9] GOLD (Max level)
-            };
+            backgroundBoxConfig = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundBoxConfig.png");
         }
 
-        private void getCompatibleMods()
+        private void loadSkills()
         {
-            //
+            // Add Base Skills
+            playerSkills.Add(new skillHolder(Helper, "farming", "farming", new Color(115, 150, 56)));
+            playerSkills.Add(new skillHolder(Helper, "fishing", "fishing", new Color(117, 150, 150)));
+            playerSkills.Add(new skillHolder(Helper, "foraging", "foraging", new Color(145, 102, 0)));
+            playerSkills.Add(new skillHolder(Helper, "mining", "mining", new Color(150, 80, 120)));
+            playerSkills.Add(new skillHolder(Helper, "combat", "combat", new Color(150, 31, 0)));
+
+            // Mod Compatibility
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.LuckSkill"))
-            {
-                barQuantity++;
-                luckCompatibility = true;
-                this.Monitor.Log($"Found: Luck Skills - spacechase0", LogLevel.Trace);
-            }
+                playerSkills.Add(new skillHolder(Helper, "luck", "luck", new Color(150, 150, 0)));
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
-            {
-                barQuantity++;
-                cookingCompatibility = true;
-                this.Monitor.Log($"Found: Cooking Skill - spacechase0", LogLevel.Trace);
-            }
+                playerSkills.Add(new skillHolder(Helper, "cooking", "cooking", new Color(165, 100, 30)));
+            if (this.Helper.ModRegistry.IsLoaded("moonslime.CookingSkill"))
+                playerSkills.Add(new skillHolder(Helper, "moonslime.Cooking", "cooking", new Color(165, 100, 30)));
             if (this.Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
-            {
-                barQuantity++;
-                loveCookingCompatibility = true;
-                this.Monitor.Log($"Found: Love of Cooking - bblueberry", LogLevel.Trace);
-            }
+                playerSkills.Add(new skillHolder(Helper, "blueberry.LoveOfCooking.CookingSkill", "loveCooking", new Color(150, 55, 5)));
+            if (this.Helper.ModRegistry.IsLoaded("moonslime.ArchaeologySkill"))
+                playerSkills.Add(new skillHolder(Helper, "moonslime.Archaeology", "archaeology", new Color(63, 24, 0)));
+            if (this.Helper.ModRegistry.IsLoaded("drbirbdev.SocializingSkill"))
+                playerSkills.Add(new skillHolder(Helper, "drbirbdev.Socializing", "socializing", new Color(221, 0, 59)));
+            if (this.Helper.ModRegistry.IsLoaded("Achtuur.StardewTravelSkill"))
+                playerSkills.Add(new skillHolder(Helper, "Achtuur.Travelling", "travelling", new Color(73, 100, 98)));
+            if (this.Helper.ModRegistry.IsLoaded("drbirbdev.BinningSkill"))
+                playerSkills.Add(new skillHolder(Helper, "drbirbdev.Binning", "binning", new Color(60, 60, 77)));
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-            {
-                barQuantity++;
-                magicCompatibility = true;
-                this.Monitor.Log($"Found: Magic - spacechase0", LogLevel.Trace);
-            }
+                playerSkills.Add(new skillHolder(Helper, "magic", "magic", new Color(155, 25, 135)));
         }
 
         private void onRenderedHud(object sender, RenderedHudEventArgs e)
@@ -410,11 +625,9 @@ namespace AbilitiesExperienceBars
 
             if (!Context.IsWorldReady || Game1.CurrentEvent != null) return;
 
-            //In-Config background
+            // In-Config background
             if (inConfigMode)
-            {
                 e.SpriteBatch.Draw(backgroundBoxConfig, new Rectangle(0, 0, Game1.uiViewport.Width, Game1.uiViewport.Height), new Color(0, 0, 0, 0.50f));
-            }
 
             if (this.config.ShowButtons)
             {
@@ -424,9 +637,7 @@ namespace AbilitiesExperienceBars
                     e.SpriteBatch.Draw(buttonReset, new Rectangle(configButtonPosX + 75, configButtonPosY, buttonReset.Width * 3, buttonReset.Height * 3), Color.White);
                 }
                 else
-                {
                     e.SpriteBatch.Draw(buttonConfig, new Rectangle(configButtonPosX, configButtonPosY, buttonConfig.Width * 3, buttonConfig.Height * 3), Color.White);
-                }
             }
             else
             {
@@ -437,24 +648,21 @@ namespace AbilitiesExperienceBars
                 }
             }
 
-            //Draw config button
+            // Draw config button
             if (this.config.ShowButtons)
             {
                 if (!inConfigMode)
                 {
                     if (!this.config.ShowUI)
-                    {
                         e.SpriteBatch.Draw(buttonHidden, new Rectangle(configButtonPosX + 75, configButtonPosY, buttonConfig.Width * 3, buttonConfig.Height * 3), Color.White);
-                    }
                     else
-                    {
                         e.SpriteBatch.Draw(buttonVisibility, new Rectangle(configButtonPosX + 75, configButtonPosY, buttonConfig.Width * 3, buttonConfig.Height * 3), Color.White);
-                    }
                 }
             }
 
             if (!this.config.ShowUI) return;
-            //Draw adjust buttons
+
+            // Draw adjust buttons
             if (inConfigMode)
             {
                 e.SpriteBatch.Draw(buttonDecreaseSize, new Rectangle(this.config.mainPosX, this.config.mainPosY - 30, buttonDecreaseSize.Width * 3, buttonDecreaseSize.Height * 3), decreaseSizeButtonColor);
@@ -464,7 +672,7 @@ namespace AbilitiesExperienceBars
                 e.SpriteBatch.Draw(experienceButton, new Rectangle(this.config.mainPosX + 125, this.config.mainPosY - 30, experienceButton.Width * 3, experienceButton.Height * 3), experienceButtonColor);
             }
 
-            //Draw background
+            // Draw Background
             if (this.config.ShowBoxBackground)
             {
                 e.SpriteBatch.Draw(backgroundTop, new Rectangle(this.config.mainPosX, this.config.mainPosY, backgroundTop.Width * this.config.mainScale, backgroundTop.Height * this.config.mainScale), globalChangeColor);
@@ -473,145 +681,96 @@ namespace AbilitiesExperienceBars
             }
 
             int posControlY = this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + (barSpacement / 2);
-            this.luckCheck = this.cookingCheck = this.magicCheck = this.loveCookingCheck = false;
-            //Draw inside background components
-            for (var i = 0; i < barQuantity; i++)
+
+            // Draw Experience Bars
+            foreach (skillHolder sh in playerSkills)
             {
                 getPlayerInformation();
                 int barPosX = this.config.mainPosX + ((int)MyHelper.GetSpriteCenter(backgroundFiller, this.config.mainScale).X - (int)MyHelper.GetSpriteCenter(backgroundBar, this.config.mainScale).X);
 
                 //Draw bars background
-                e.SpriteBatch.Draw(backgroundBar, new Rectangle(barPosX, posControlY, backgroundBar.Width * this.config.mainScale, backgroundBar.Height * this.config.mainScale), globalChangeColor);
+                e.SpriteBatch.Draw(backgroundBar, 
+                    new Rectangle(barPosX, posControlY, backgroundBar.Width * this.config.mainScale, backgroundBar.Height * this.config.mainScale), 
+                    globalChangeColor);
 
-                if (i <= 4)
-                {
-                    //Draw icons
-                    e.SpriteBatch.Draw(icons[i], new Rectangle(barPosX + (((26 * this.config.mainScale) / 2) - ((icons[i].Width * this.config.mainScale) / 2)), posControlY + (((24 * this.config.mainScale) / 2) - (int)MyHelper.GetSpriteCenter(icons[i], this.config.mainScale).Y), icons[i].Width * this.config.mainScale, icons[i].Height * this.config.mainScale), globalChangeColor);
-                    //Draw level text
-                    int posNumber;
-                    if (playerLevels[i].ToString().Length == 1)
-                    {
-                        posNumber = 34;
-                    }
-                    else if (playerLevels[i].ToString().Length == 2)
-                    {
-                        posNumber = 37;
-                    }
-                    else
-                    {
-                        posNumber = 40;
-                    }
-                    NumberSprite.draw(playerLevels[i], e.SpriteBatch, new Vector2(barPosX + (posNumber * this.config.mainScale), posControlY + (12 * this.config.mainScale)), globalChangeColor, BarController.AdjustLevelScale(this.config.mainScale, playerLevels[i], maxLevel), 0, 1, 0);
-                    //Draw experience bars
-                    Color barColor;
-                    if (draggingBox)
-                    {
-                        if (playerLevels[i] >= maxLevel)
-                        {
-                            barColor = MyHelper.ChangeColorIntensity(finalColors[i], 0.35f, 1);
-                        }
-                        else
-                        {
-                            barColor = MyHelper.ChangeColorIntensity(colors[i], 0.35f, 1);
-                        }
-                    }
-                    else
-                    {
-                        if (playerLevels[i] >= maxLevel)
-                        {
-                            barColor = finalColors[i];
-                        }
-                        else
-                        {
-                            barColor = colors[i];
-                        }
-                    }
-                    e.SpriteBatch.Draw(barFiller, BarController.GetExperienceBar(new Vector2(barPosX + (43 * this.config.mainScale), posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), new Vector2(83, barFiller.Height), playerExperience[i], playerLevels[i], maxLevel, this.config.mainScale), barColor);
-                    if (this.config.ShowExperienceInfo)
-                    {
-                        if (playerLevels[i] < maxLevel)
-                        {
-                            e.SpriteBatch.DrawString(Game1.dialogueFont, BarController.GetExperienceText(playerExperience[i], playerLevels[i], maxLevel), new Vector2(barPosX + (43 * this.config.mainScale) + 5, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(colors[i], 0.45f, colors[i].A), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
-                        }
-                        else
-                        {
-                            e.SpriteBatch.DrawString(Game1.dialogueFont, BarController.GetExperienceText(playerExperience[i], playerLevels[i], maxLevel), new Vector2(barPosX + (43 * this.config.mainScale) + 5, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(finalColors[i], 0.45f, finalColors[i].A), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
-                        }
-                    }
-                    if (actualExpGainedMessage[i] && this.config.ShowExperienceInfo)
-                    {
-                        e.SpriteBatch.Draw(backgroundExp, new Rectangle(barPosX + expAdvicePositionX, posControlY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2), backgroundExp.Width * this.config.mainScale, backgroundExp.Height * this.config.mainScale), MyHelper.ChangeColorIntensity(globalChangeColor, 1, expAlpha[i]));
 
-                        Vector2 centralizedStringPos = MyHelper.GetStringCenter(expGained[i].ToString(), Game1.dialogueFont);
-                        e.SpriteBatch.DrawString(Game1.dialogueFont, $"+{expGained[i]}", new Vector2(barPosX + expAdvicePositionX + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(colorsRestoration[i], 0.45f, expAlpha[i]), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
-                    }
-                }
+                // Draw icons
+                e.SpriteBatch.Draw(sh.skillIcon, new Rectangle(barPosX + (((26 * this.config.mainScale) / 2) - ((sh.skillIcon.Width * this.config.mainScale) / 2)),
+                    posControlY + (((24 * this.config.mainScale) / 2) - (int)MyHelper.GetSpriteCenter(sh.skillIcon,
+                    this.config.mainScale).Y), sh.skillIcon.Width * this.config.mainScale, sh.skillIcon.Height * this.config.mainScale),
+                    globalChangeColor);
+
+                // Draw level text
+                int posNumber;
+                if (sh.currentLevel < 10) posNumber = 34;
+                else if (sh.currentLevel < 100) posNumber = 37;
+                else posNumber = 40;
+
+                NumberSprite.draw(sh.currentLevel,
+                    e.SpriteBatch,
+                    new Vector2(barPosX + (posNumber * this.config.mainScale), posControlY + (12 * this.config.mainScale)),
+                    globalChangeColor,
+                    BarController.AdjustLevelScale(this.config.mainScale, sh.currentLevel, maxLevel),
+                    0, 1, 0);
+
+                // Draw Experience Bars
+                Color barColor;
+                if (draggingBox)
+                    if (sh.currentLevel >= maxLevel) barColor = MyHelper.ChangeColorIntensity(sh.skillFinalColor, 0.35f, 1);
+                    else barColor = MyHelper.ChangeColorIntensity(sh.skillColor, 0.35f, 1);
                 else
+                    if (sh.currentLevel >= maxLevel) barColor = sh.skillFinalColor;
+                    else barColor = sh.skillColor;
+
+                e.SpriteBatch.Draw(barFiller,
+                    BarController.GetExperienceBar(new Vector2(barPosX + (43 * this.config.mainScale),
+                    posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)),
+                    new Vector2(83, barFiller.Height), sh.currentEXP,
+                    sh.currentLevel,
+                    maxLevel,
+                    this.config.mainScale),
+                    barColor);
+                    
+                // Draw Experience Text
+                if (this.config.ShowExperienceInfo)
                 {
-                    int tempIndex = CompatibilityController.GetActualAbility(i, Helper, this.instance);
-                    int[] modInfos = CompatibilityController.GetModExp(Helper, tempIndex);
-
-                    //Same as above
-                    e.SpriteBatch.Draw(icons[tempIndex], new Rectangle(barPosX + (((26 * this.config.mainScale) / 2) - ((icons[tempIndex].Width * this.config.mainScale) / 2)), posControlY + (((24 * this.config.mainScale) / 2) - ((icons[tempIndex].Height * this.config.mainScale) / 2)), icons[tempIndex].Width * this.config.mainScale, icons[tempIndex].Height * this.config.mainScale), globalChangeColor);
-                    int posModded;
-                    if (modInfos[2].ToString().Length == 1)
+                    byte alpha;
+                    Color actualColor;
+                    if (sh.currentLevel < maxLevel)
                     {
-                        posModded = 34;
-                    }
-                    else if (modInfos[2].ToString().Length == 2)
-                    {
-                        posModded = 37;
+                        actualColor = sh.skillColor;
+                        alpha = sh.skillColor.A;
                     }
                     else
                     {
-                        posModded = 40;
+                        actualColor = sh.skillFinalColor;
+                        alpha = sh.skillFinalColor.A;
                     }
-                    NumberSprite.draw(modInfos[2], e.SpriteBatch, new Vector2(barPosX + (posModded * this.config.mainScale), posControlY + (12 * this.config.mainScale)), globalChangeColor, BarController.AdjustLevelScale(this.config.mainScale, modInfos[2], maxLevel), 0, 1, 0);
-                    Color barColor;
-                    if (draggingBox)
-                    {
-                        if (modInfos[2] >= maxLevel)
-                        {
-                            barColor = MyHelper.ChangeColorIntensity(finalColors[tempIndex], 0.35f, 1);
-                        }
-                        else
-                        {
-                            barColor = MyHelper.ChangeColorIntensity(colors[tempIndex], 0.35f, 1);
-                        }
-                    }
-                    else
-                    {
-                        if (modInfos[2] >= maxLevel)
-                        {
-                            barColor = finalColors[tempIndex];
-                        }
-                        else
-                        {
-                            barColor = colors[tempIndex];
-                        }
-                    }
-                    e.SpriteBatch.Draw(barFiller, BarController.GetExperienceBar(new Vector2(barPosX + (43 * this.config.mainScale), posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), new Vector2(83, barFiller.Height), modInfos[0], modInfos[2], maxLevel, this.config.mainScale), barColor);
-                    if (this.config.ShowExperienceInfo)
-                    {
-                        if (modInfos[2] < maxLevel)
-                        {
-                            e.SpriteBatch.DrawString(Game1.dialogueFont, BarController.GetExperienceText(modInfos[0], modInfos[2], maxLevel), new Vector2(barPosX + (43 * this.config.mainScale) + 5, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(colors[tempIndex], 0.45f, colors[tempIndex].A), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
-                        }
-                        else
-                        {
-                            e.SpriteBatch.DrawString(Game1.dialogueFont, BarController.GetExperienceText(modInfos[0], modInfos[2], maxLevel), new Vector2(barPosX + (43 * this.config.mainScale) + 5, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(finalColors[tempIndex], 0.45f, finalColors[tempIndex].A), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
-                        }
-                    }
-                    int prevIndex = 0;
-                    if (this.Helper.ModRegistry.IsLoaded("spacechase0.LuckSkill")) prevIndex = i;
-                    else prevIndex = i + 1;
-                    if (actualExpGainedMessage[prevIndex] && this.config.ShowExperienceInfo)
-                    {
-                        e.SpriteBatch.Draw(backgroundExp, new Rectangle(barPosX + expAdvicePositionX, posControlY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2), backgroundExp.Width * this.config.mainScale, backgroundExp.Height * this.config.mainScale), MyHelper.ChangeColorIntensity(globalChangeColor, 1, expAlpha[prevIndex]));
+                    e.SpriteBatch.DrawString(Game1.dialogueFont,
+                        BarController.GetExperienceText(sh.currentEXP, sh.currentLevel, maxLevel),
+                        new Vector2(barPosX + (43 * this.config.mainScale) + 5,
+                        posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)),
+                        MyHelper.ChangeColorIntensity(actualColor, 0.45f, alpha), 0f, Vector2.Zero, 
+                        BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
+                }
 
-                        Vector2 centralizedStringPos = MyHelper.GetStringCenter(expGained[prevIndex].ToString(), Game1.dialogueFont);
-                        e.SpriteBatch.DrawString(Game1.dialogueFont, $"+{expGained[prevIndex]}", new Vector2(barPosX + expAdvicePositionX + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X, posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), MyHelper.ChangeColorIntensity(colorsRestoration[prevIndex], 0.45f, expAlpha[prevIndex]), 0f, Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
-                    }
+                if (sh.actualExpGainedMessage && this.config.ShowExperienceInfo)
+                {
+                    e.SpriteBatch.Draw(backgroundExp,
+                        new Rectangle(barPosX + expAdvicePositionX, 
+                        posControlY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2), 
+                        backgroundExp.Width * this.config.mainScale, 
+                        backgroundExp.Height * this.config.mainScale), 
+                        MyHelper.ChangeColorIntensity(globalChangeColor, 
+                        1, sh.expAlpha));
+
+                    Vector2 centralizedStringPos = MyHelper.GetStringCenter(sh.expGained.ToString(), Game1.dialogueFont);
+                    e.SpriteBatch.DrawString(Game1.dialogueFont,
+                        $"+{sh.expGained}", new Vector2(barPosX + expAdvicePositionX + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X, 
+                        posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)), 
+                        MyHelper.ChangeColorIntensity(sh.skillRestorationColor, 0.45f, sh.expAlpha), 0f, 
+                        Vector2.Zero, BarController.AdjustExperienceScale(this.config.mainScale), 
+                        SpriteEffects.None, 1);
                 }
 
                 posControlY += barSpacement + (backgroundBar.Height * this.config.mainScale);
@@ -620,25 +779,10 @@ namespace AbilitiesExperienceBars
 
         private void onSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
+            // Get current and load Previous
             getPlayerInformation();
-            oldPlayerLevels = playerLevels;
-            oldPlayerExperience = playerExperience;
-
-            if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
-            {
-                oldPlayerModdedLevels[0] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("cooking"));
-                oldPlayerModdedExperience[0] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("cooking"));
-            }
-            if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
-            {
-                oldPlayerModdedLevels[1] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
-                oldPlayerModdedExperience[1] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
-            }
-            if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-            {
-                oldPlayerModdedLevels[2] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
-                oldPlayerModdedExperience[2] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("magic"));
-            }
+            foreach (skillHolder sh in playerSkills)
+                sh.setPreviousData();
 
             configButtonPosX = MyHelper.AdjustPositionMineLevelWidth(configButtonPosX, Game1.player.currentLocation, defaultButtonPosX);
         }
@@ -647,377 +791,181 @@ namespace AbilitiesExperienceBars
         {
             if (!Context.IsWorldReady && Game1.CurrentEvent == null) return;
 
+            // Get New Player Info
             getPlayerInformation();
 
             animateThings();
 
-            checkExpUp();
+            // Experience Gain Check
+            checkExperienceGain();
             expTimer();
-
             expAlphaChanger();
 
-            checkLevelUp();
+            // Level Up Check
+            checkLevelGain();
             levelUpTimer();
 
+            // Player is dragging box
             if (draggingBox)
             {
                 this.config.mainPosX = Game1.getMousePosition(true).X - ((backgroundTop.Width * this.config.mainScale) / 2);
                 this.config.mainPosY = Game1.getMousePosition(true).Y - (BarController.AdjustBackgroundSize(barQuantity, backgroundBar.Height * this.config.mainScale, barSpacement) / 2) - (backgroundTop.Height * this.config.mainScale);
             }
 
+            // Check position
             checkMousePosition();
             repositionExpInfo();
 
-            if (Game1.player.currentLocation.name == "Club")
-            {
+            // Special Case for the Club
+            if (Game1.currentLocation.Name == "Club")
                 configButtonPosY = 90;
-            }
             else
-            {
                 configButtonPosY = defaultButtonPosY;
-            }
         }
 
-        private void checkExpUp()
+        private void checkExperienceGain()
         {
-            var prevIndex = 0;
-
-            for (var i = 0; i < playerExperience.Length; i++)
-            {
-                if (playerExperience[i] != oldPlayerExperience[i])
-                {
-                    expGained[i] = playerExperience[i] - oldPlayerExperience[i];
-                    oldPlayerExperience[i] = playerExperience[i];
-
-                    showExpUpAdvice(i);
-                }
-            }
-
-            if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
-            {
-                if (playerModdedExperience[0] != oldPlayerModdedExperience[0])
-                {
-                    prevIndex = 6;
-
-                    expGained[prevIndex] = playerModdedExperience[0] - oldPlayerModdedExperience[0];
-                    oldPlayerModdedExperience[0] = playerModdedExperience[0];
-
-                    showExpUpAdvice(prevIndex);
-                }
-            }
-            if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
-            {
-                if (playerModdedExperience[1] != oldPlayerModdedExperience[1])
-                {
-                    if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill")) prevIndex = 7;
-                    else prevIndex = 6;
-
-                    expGained[prevIndex] = playerModdedExperience[1] - oldPlayerModdedExperience[1];
-                    oldPlayerModdedExperience[1] = playerModdedExperience[1];
-
-                    showExpUpAdvice(prevIndex);
-                }
-            }
-            if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-            {
-                if (playerModdedExperience[2] != oldPlayerModdedExperience[2])
-                {
-                    if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill") && Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking")) prevIndex = 8;
-                    else if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill") && !Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking")) prevIndex = 7;
-                    else if (!Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill") && Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking")) prevIndex = 7;
-                    else prevIndex = 6;
-
-                    expGained[prevIndex] = playerModdedExperience[2] - oldPlayerModdedExperience[2];
-                    oldPlayerModdedExperience[2] = playerModdedExperience[2];
-
-                    showExpUpAdvice(prevIndex);
-                }
-            }
+            foreach (skillHolder sh in playerSkills)
+                sh.GainExperience();
         }
-        private void showExpUpAdvice(int skill)
-        {
-            for (var i = 0; i <= animateSkill.Length; i++)
-            {
-                if (skill == i)
-                {
-                    inIncrease[i] = true;
-                    actualExpGainedMessage[i] = true;
-                    timeExpMessageLeft[i] = 3 * 60;
-                    expAlpha[i] = 0;
 
-                    expIncreasing[i] = true;
-                    animateSkill[i] = true;
-                }
-            }
-        }
         private void expTimer()
         {
-            for (var i = 0; i < animateSkill.Length; i++)
-            {
-                if (animateSkill[i])
+            if (playerSkills.Any(sh => sh.animateSkill == true)) {
+                List<skillHolder> animateList = playerSkills.FindAll(sh => sh.animateSkill == true);
+
+                foreach (skillHolder sh in animateList)
                 {
-                    int actualSkillLevel = 0;
-                    int toColor = i;
+                    // Skill Info
+                    int actualSkillLevel = sh.currentLevel;
+                    int toColor = sh.colorIndex;
 
-                    if (i < 6)
-                    {
-                        actualSkillLevel = playerLevels[i];
-                    }
-                    else
-                    {
-                        if (i == 6)
-                        {
-                            if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
-                            {
-                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("cooking"));
-                                toColor = 6;
-                            }
-                            else if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
-                            {
-                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
-                                toColor = 7;
-                            }
-                            else if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-                            {
-                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
-                                toColor = 8;
-                            }
-                        }
-                        else if (i == 7)
-                        {
-                            if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking") && Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
-                            {
-                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
-                                toColor = 7;
-                            }
-                            else if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-                            {
-                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
-                                toColor = 8;
-                            }
-                        }
-                        else if (i == 8)
-                        {
-                            if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-                            {
-                                actualSkillLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
-                                toColor = 8;
-                            }
-                        }
-                    }
-
+                    // Color Values
                     int virtualColorValue;
                     byte intensity = 5;
 
-                    if (expIncreasing[i])
+                    if (sh.expIncreasing)
                     {
                         if (actualSkillLevel < 10)
                         {
-                            if (colors[toColor].R < 255 && colors[toColor].G < 255 && colors[toColor].B < 255)
+                            if (sh.skillColor.R < 255 && sh.skillColor.G < 255 && sh.skillColor.B < 255)
                             {
-                                virtualColorValue = colors[toColor].R + intensity;
-                                if (virtualColorValue < 255) colors[toColor].R += intensity;
-                                else colors[toColor].R = 255;
+                                virtualColorValue = sh.skillColor.R + intensity;
+                                if (virtualColorValue < 255) sh.skillColor.R += intensity;
+                                else sh.skillColor.R = 255;
 
-                                virtualColorValue = colors[toColor].G + intensity;
-                                if (virtualColorValue < 255) colors[toColor].G += intensity;
-                                else colors[toColor].G = 255;
+                                virtualColorValue = sh.skillColor.G + intensity;
+                                if (virtualColorValue < 255) sh.skillColor.G += intensity;
+                                else sh.skillColor.G = 255;
 
-                                virtualColorValue = colors[toColor].B + intensity;
-                                if (virtualColorValue < 255) colors[toColor].B += intensity;
-                                else colors[toColor].B = 255;
+                                virtualColorValue = sh.skillColor.B + intensity;
+                                if (virtualColorValue < 255) sh.skillColor.B += intensity;
+                                else sh.skillColor.B = 255;
                             }
                             else
-                            {
-                                expIncreasing[i] = false;
-                            }
+                                sh.expIncreasing = false;
                         }
                         else
                         {
-                            if (finalColors[toColor].R < 255 && finalColors[toColor].G < 255 && finalColors[toColor].B < 255)
+                            if (sh.skillFinalColor.R < 255 && sh.skillFinalColor.G < 255 && sh.skillFinalColor.B < 255)
                             {
-                                virtualColorValue = finalColors[toColor].R + intensity;
-                                if (virtualColorValue < 255) finalColors[toColor].R += intensity;
-                                else finalColors[toColor].R = 255;
+                                virtualColorValue = sh.skillFinalColor.R + intensity;
+                                if (virtualColorValue < 255) sh.skillFinalColor.R += intensity;
+                                else sh.skillFinalColor.R = 255;
 
-                                virtualColorValue = finalColors[toColor].G + intensity;
-                                if (virtualColorValue < 255) finalColors[toColor].G += intensity;
-                                else finalColors[toColor].G = 255;
+                                virtualColorValue = sh.skillFinalColor.G + intensity;
+                                if (virtualColorValue < 255) sh.skillFinalColor.G += intensity;
+                                else sh.skillFinalColor.G = 255;
 
-                                virtualColorValue = finalColors[toColor].B + intensity;
-                                if (virtualColorValue < 255) finalColors[toColor].B += intensity;
-                                else finalColors[toColor].B = 255;
+                                virtualColorValue = sh.skillFinalColor.B + intensity;
+                                if (virtualColorValue < 255) sh.skillFinalColor.B += intensity;
+                                else sh.skillFinalColor.B = 255;
                             }
                             else
-                            {
-                                expIncreasing[i] = false;
-                            }
+                                sh.expIncreasing = false;
                         }
                     }
                     else
                     {
                         if (actualSkillLevel < 10)
                         {
-                            if (colors[toColor] != colorsRestoration[toColor])
+                            if (sh.skillColor != sh.skillRestorationColor)
                             {
-                                virtualColorValue = colors[toColor].R - intensity;
-                                if (virtualColorValue > colorsRestoration[toColor].R) colors[toColor].R -= intensity;
-                                else colors[toColor].R = colorsRestoration[toColor].R;
+                                virtualColorValue = sh.skillColor.R - intensity;
+                                if (virtualColorValue > sh.skillRestorationColor.R) sh.skillColor.R -= intensity;
+                                else sh.skillColor.R = sh.skillRestorationColor.R;
 
-                                virtualColorValue = colors[toColor].G - intensity;
-                                if (virtualColorValue > colorsRestoration[toColor].G) colors[toColor].G -= intensity;
-                                else colors[toColor].G = colorsRestoration[toColor].G;
+                                virtualColorValue = sh.skillColor.G - intensity;
+                                if (virtualColorValue > sh.skillRestorationColor.G) sh.skillColor.G -= intensity;
+                                else sh.skillColor.G = sh.skillRestorationColor.G;
 
-                                virtualColorValue = colors[toColor].B - intensity;
-                                if (virtualColorValue > colorsRestoration[toColor].B) colors[toColor].B -= intensity;
-                                else colors[toColor].B = colorsRestoration[toColor].B;
+                                virtualColorValue = sh.skillColor.B - intensity;
+                                if (virtualColorValue > sh.skillRestorationColor.B) sh.skillColor.B -= intensity;
+                                else sh.skillColor.B = sh.skillRestorationColor.B;
                             }
                             else
-                            {
-                                animateSkill[i] = false;
-                            }
+                                sh.animateSkill = false;
                         }
                         else
                         {
-                            if (finalColors[toColor] != colorsRestoration[9])
+                            if (sh.skillFinalColor != sh.skillGoldColor)
                             {
-                                virtualColorValue = finalColors[toColor].R - intensity;
-                                if (virtualColorValue > colorsRestoration[9].R) finalColors[toColor].R -= intensity;
-                                else finalColors[toColor].R = colorsRestoration[9].R;
+                                virtualColorValue = sh.skillFinalColor.R - intensity;
+                                if (virtualColorValue > sh.skillGoldColor.R) sh.skillFinalColor.R -= intensity;
+                                else sh.skillFinalColor.R = sh.skillGoldColor.R;
 
-                                virtualColorValue = finalColors[toColor].G - intensity;
-                                if (virtualColorValue > colorsRestoration[9].G) finalColors[toColor].G -= intensity;
-                                else finalColors[toColor].G = colorsRestoration[9].G;
+                                virtualColorValue = sh.skillFinalColor.G - intensity;
+                                if (virtualColorValue > sh.skillGoldColor.G) sh.skillFinalColor.G -= intensity;
+                                else sh.skillFinalColor.G = sh.skillGoldColor.G;
 
-                                virtualColorValue = finalColors[toColor].B - intensity;
-                                if (virtualColorValue > colorsRestoration[9].B) finalColors[toColor].B -= intensity;
-                                else finalColors[toColor].B = colorsRestoration[9].B;
+                                virtualColorValue = sh.skillFinalColor.B - intensity;
+                                if (virtualColorValue > sh.skillGoldColor.B) sh.skillFinalColor.B -= intensity;
+                                else sh.skillFinalColor.B = sh.skillGoldColor.B;
                             }
                             else
-                            {
-                                animateSkill[i] = false;
-                            }
+                                sh.animateSkill = false;
                         }
                     }
                 }
             }
         }
+
         private void expAlphaChanger()
         {
-            int virtualAlphaValue;
-            byte intensity = 12;
-
-            for (var i = 0; i < actualExpGainedMessage.Length; i++)
+            if (playerSkills.Any(sh => sh.actualExpGainedMessage == true))
             {
-                if (actualExpGainedMessage[i])
-                {
-                    if (inIncrease[i])
-                    {
-                        virtualAlphaValue = expAlpha[i] + intensity;
-                        if (virtualAlphaValue < 255) expAlpha[i] += intensity;
-                        else
-                        {
-                            expAlpha[i] = 255;
-                            inIncrease[i] = false;
-                            inWait[i] = true;
-                        }
-                    }
-                    else if (inWait[i])
-                    {
-                        if (timeExpMessageLeft[i] > 0)
-                        {
-                            timeExpMessageLeft[i]--;
-                        }
-                        else
-                        {
-                            inWait[i] = false;
-                            inDecrease[i] = true;
-                        }
-                    }
-                    else if (inDecrease[i])
-                    {
-                        virtualAlphaValue = expAlpha[i] - intensity;
-                        if (virtualAlphaValue > 0) expAlpha[i] -= intensity;
-                        else
-                        {
-                            expAlpha[i] = 0;
-                            inDecrease[i] = false;
-                            actualExpGainedMessage[i] = false;
-                        }
-                    }
-                }
+                List<skillHolder> expGainedList = playerSkills.FindAll(sh => sh.actualExpGainedMessage == true);
+                foreach (skillHolder sh in expGainedList)
+                    sh.ExperienceAlpha(12);
             }
         }
 
-        private void checkLevelUp()
+        private void checkLevelGain()
         {
-            for (var i = 0; i < playerLevels.Length; i++)
+            foreach (skillHolder sh in playerSkills)
             {
-                if (playerLevels[i] != oldPlayerLevels[i])
+                if (sh.GainLevel())
                 {
-                    oldPlayerLevels[i] = playerLevels[i];
+                    // Show level up information
+                    levelUpIcon = sh.skillIcon;
+                    levelUpMessage = Helper.Translation.Get("LevelUpMessage");
+                    timeLeft = this.config.LevelUpMessageDuration * 60;
+                    canShowLevelUp = true;
 
-                    showLevelUpAdvice(playerLevels[i], i);
-
-                    levelUpPosY = (int)new Vector2(0, 0 - (backgroundLevelUp.Height * 3) - 5).Y;
-                    animLevelUpDir = "bottom"; animDestPosLevelUp = new Vector2(0, 150);
-                    animatingLevelUp = true;
-                }
-            }
-            if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
-            {
-                if (oldPlayerModdedLevels[0] != Game1.player.GetCustomSkillLevel(Skills.GetSkill("cooking")))
-                {
-                    oldPlayerModdedLevels[0] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("cooking"));
-                    showLevelUpAdvice(0, 6);
-
-                    levelUpPosY = (int)new Vector2(0, 0 - (backgroundLevelUp.Height * 3) - 5).Y;
-                    animLevelUpDir = "bottom"; animDestPosLevelUp = new Vector2(0, 150);
-                    animatingLevelUp = true;
-                }
-            }
-            if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
-            {
-                if (oldPlayerModdedLevels[1] != Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill")))
-                {
-                    oldPlayerModdedLevels[1] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
-                    showLevelUpAdvice(0, 7);
-
-                    levelUpPosY = (int)new Vector2(0, 0 - (backgroundLevelUp.Height * 3) - 5).Y;
-                    animLevelUpDir = "bottom"; animDestPosLevelUp = new Vector2(0, 150);
-                    animatingLevelUp = true;
-                }
-            }
-            if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-            {
-                if (oldPlayerModdedLevels[2] != Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic")))
-                {
-                    oldPlayerModdedLevels[2] = Game1.player.GetCustomSkillLevel(Skills.GetSkill("magic"));
-                    showLevelUpAdvice(0, 8);
-
+                    // Set Level up window and bool
                     levelUpPosY = (int)new Vector2(0, 0 - (backgroundLevelUp.Height * 3) - 5).Y;
                     animLevelUpDir = "bottom"; animDestPosLevelUp = new Vector2(0, 150);
                     animatingLevelUp = true;
                 }
             }
         }
-        private void showLevelUpAdvice(int level, int skill)
-        {
-            levelUpIcon = icons[skill];
-            levelUpMessage = Helper.Translation.Get("LevelUpMessage");
 
-
-            timeLeft = this.config.LevelUpMessageDuration * 60;
-            canShowLevelUp = true;
-        }
         private void levelUpTimer()
         {
             if (!canShowLevelUp || !canCountTimer) return;
 
             if (timeLeft > 0)
-            {
                 timeLeft--;
-            }
             else
             {
                 canCountTimer = false;
@@ -1028,28 +976,11 @@ namespace AbilitiesExperienceBars
 
         private void getPlayerInformation()
         {
-            playerExperience = Game1.player.experiencePoints.ToArray();
-            playerLevels = new int[]
-            {
-                Game1.player.farmingLevel,
-                Game1.player.fishingLevel,
-                Game1.player.foragingLevel,
-                Game1.player.miningLevel,
-                Game1.player.combatLevel,
-                Game1.player.luckLevel,
-            };
-            if (Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
-            {
-                playerModdedExperience[0] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("cooking"));
-            }
-            if (Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
-            {
-                playerModdedExperience[1] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("blueberry.LoveOfCooking.CookingSkill"));
-            }
-            if (Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-            {
-                playerModdedExperience[2] = Game1.player.GetCustomSkillExperience(Skills.GetSkill("magic"));
-            }
+            if (playerSkills.Count <= 0)
+                loadSkills();
+            else
+                foreach (skillHolder sh in playerSkills)
+                    sh.setCurrentData();
         }
 
         private void onButtonPressed(object sender, ButtonPressedEventArgs e)
@@ -1169,8 +1100,6 @@ namespace AbilitiesExperienceBars
                 }
             }
 
-
-
             if (inConfigMode)
             {
                 //Box click check
@@ -1279,6 +1208,7 @@ namespace AbilitiesExperienceBars
 
             }
         }
+
         private void onButtonReleased(object sender, ButtonReleasedEventArgs e)
         {
             if (!Context.IsWorldReady || Game1.CurrentEvent != null) return;
@@ -1409,6 +1339,7 @@ namespace AbilitiesExperienceBars
         {
             Game1.player.canOnlyWalk = true;
         }
+
         private void unblockActions()
         {
             Game1.player.canOnlyWalk = false;

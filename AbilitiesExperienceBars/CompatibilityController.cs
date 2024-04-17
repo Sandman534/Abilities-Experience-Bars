@@ -50,7 +50,7 @@ namespace AbilitiesExperienceBars
             if (index == 5)
             {
                 int[] playerExperience = Game1.player.experiencePoints.ToArray();
-                int luckLevel = Game1.player.luckLevel;
+                int luckLevel = Game1.player.luckLevel.Value;
 
                 send[0] = playerExperience[5];
                 send[2] = luckLevel;
