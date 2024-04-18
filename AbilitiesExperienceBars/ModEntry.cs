@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using SpaceCore;
 using SpaceShared.APIs;
@@ -7,7 +8,9 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace AbilitiesExperienceBars
 {
@@ -87,6 +90,11 @@ namespace AbilitiesExperienceBars
                 previousLevel = Game1.player.combatLevel.Value;
                 previousEXP = Game1.player.experiencePoints[4];
             }
+            else if (skillID == "luck")
+            {
+                previousLevel = Game1.player.luckLevel.Value;
+                previousEXP = Game1.player.experiencePoints[5];
+            }
 
             // Mod Added Skills
             else
@@ -123,6 +131,11 @@ namespace AbilitiesExperienceBars
             {
                 currentLevel = Game1.player.combatLevel.Value;
                 currentEXP = Game1.player.experiencePoints[4];
+            }
+            else if (skillID == "luck")
+            {
+                currentLevel = Game1.player.luckLevel.Value;
+                currentEXP = Game1.player.experiencePoints[5];
             }
 
             // Mod Added Skills
@@ -215,6 +228,7 @@ namespace AbilitiesExperienceBars
         private int levelUpPosY;
         private bool inConfigMode;
         private int expAdvicePositionX;
+        private SoundEffectInstance levelUp;
 
         // Sprite Variables
         private Texture2D backgroundTop,
@@ -245,7 +259,6 @@ namespace AbilitiesExperienceBars
             experienceButtonColor = Color.White;
 
         // Global Info Variables
-        public int barQuantity = 5;
         private int barSpacement = 10;
         public bool luckCompatibility, cookingCompatibility, magicCompatibility, loveCookingCompatibility,
             luckCheck, cookingCheck, magicCheck, loveCookingCheck;
@@ -277,6 +290,7 @@ namespace AbilitiesExperienceBars
             instance = this;
             getInfo();
             loadTextures();
+            loadSound();
 
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
             helper.Events.Display.RenderedHud += onRenderedHud;
@@ -475,6 +489,12 @@ namespace AbilitiesExperienceBars
             ajustInfos();
         }
 
+        private void loadSound()
+        {
+            var path = Path.Combine(Helper.DirectoryPath, "assets", "sound", "LevelUp.wav");
+            levelUp = SoundEffect.FromStream(new FileStream(path, FileMode.Open)).CreateInstance();
+        }
+
         private void loadTextures()
         {
             backgroundTop = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundTop.png");
@@ -597,8 +617,8 @@ namespace AbilitiesExperienceBars
             if (this.config.ShowBoxBackground)
             {
                 e.SpriteBatch.Draw(backgroundTop, new Rectangle(this.config.mainPosX, this.config.mainPosY, backgroundTop.Width * this.config.mainScale, backgroundTop.Height * this.config.mainScale), globalChangeColor);
-                e.SpriteBatch.Draw(backgroundFiller, new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale), backgroundTop.Width * this.config.mainScale, BarController.AdjustBackgroundSize(barQuantity, backgroundBar.Height * this.config.mainScale, barSpacement)), globalChangeColor);
-                e.SpriteBatch.Draw(backgroundBottom, new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + BarController.AdjustBackgroundSize(barQuantity, backgroundBar.Height * this.config.mainScale, barSpacement), backgroundTop.Width * this.config.mainScale, backgroundTop.Height * this.config.mainScale), globalChangeColor);
+                e.SpriteBatch.Draw(backgroundFiller, new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale), backgroundTop.Width * this.config.mainScale, BarController.AdjustBackgroundSize(playerSkills.Count(), backgroundBar.Height * this.config.mainScale, barSpacement)), globalChangeColor);
+                e.SpriteBatch.Draw(backgroundBottom, new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + BarController.AdjustBackgroundSize(playerSkills.Count(), backgroundBar.Height * this.config.mainScale, barSpacement), backgroundTop.Width * this.config.mainScale, backgroundTop.Height * this.config.mainScale), globalChangeColor);
             }
 
             int posControlY = this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + (barSpacement / 2);
@@ -730,7 +750,7 @@ namespace AbilitiesExperienceBars
             if (draggingBox)
             {
                 this.config.mainPosX = Game1.getMousePosition(true).X - ((backgroundTop.Width * this.config.mainScale) / 2);
-                this.config.mainPosY = Game1.getMousePosition(true).Y - (BarController.AdjustBackgroundSize(barQuantity, backgroundBar.Height * this.config.mainScale, barSpacement) / 2) - (backgroundTop.Height * this.config.mainScale);
+                this.config.mainPosY = Game1.getMousePosition(true).Y - (BarController.AdjustBackgroundSize(playerSkills.Count(), backgroundBar.Height * this.config.mainScale, barSpacement) / 2) - (backgroundTop.Height * this.config.mainScale);
             }
 
             // Check position
@@ -877,6 +897,9 @@ namespace AbilitiesExperienceBars
                     levelUpPosY = (int)new Vector2(0, 0 - (backgroundLevelUp.Height * 3) - 5).Y;
                     animLevelUpDir = "bottom"; animDestPosLevelUp = new Vector2(0, 150);
                     animatingLevelUp = true;
+
+                    // Play Level Up Sound
+                    levelUpSound();
                 }
             }
         }
@@ -895,6 +918,17 @@ namespace AbilitiesExperienceBars
             }
         }
 
+        private void levelUpSound()
+        {
+            if (levelUp == null) return;
+
+            levelUp.Volume = Game1.options.soundVolumeLevel;
+            Task.Factory.StartNew(async () => { 
+                await Task.Delay(200);
+                levelUp?.Play();
+            });
+        }
+
         private void getPlayerInformation()
         {
             if (playerSkills.Count <= 0)
@@ -907,9 +941,6 @@ namespace AbilitiesExperienceBars
         private void onButtonPressed(object sender, ButtonPressedEventArgs e)
         {
             if (!Context.IsWorldReady || Game1.CurrentEvent != null) return;
-
-            if (e.Button == SButton.PageDown)
-                this.Monitor.Log($"Current location: {Game1.player.currentLocation.Name}", LogLevel.Info);
 
             Vector2 mousePos;
             mousePos.X = Game1.getMousePosition(true).X;
@@ -1013,7 +1044,7 @@ namespace AbilitiesExperienceBars
             if (inConfigMode)
             {
                 //Box click check
-                int totalBackgroundSize = BarController.AdjustBackgroundSize(barQuantity, backgroundBar.Height * this.config.mainScale, barSpacement) + (backgroundTop.Height * this.config.mainScale) + (backgroundBottom.Height * this.config.mainScale);
+                int totalBackgroundSize = BarController.AdjustBackgroundSize(playerSkills.Count(), backgroundBar.Height * this.config.mainScale, barSpacement) + (backgroundTop.Height * this.config.mainScale) + (backgroundBottom.Height * this.config.mainScale);
                 if (e.Button == SButton.MouseLeft &&
                     mousePos.X >= this.config.mainPosX && mousePos.X <= this.config.mainPosX + (backgroundTop.Width * this.config.mainScale) &&
                     mousePos.Y >= this.config.mainPosY && mousePos.Y <= this.config.mainPosY + totalBackgroundSize)
@@ -1172,7 +1203,7 @@ namespace AbilitiesExperienceBars
             Vector2 mousePos;
             mousePos.X = Game1.getMousePosition(true).X;
             mousePos.Y = Game1.getMousePosition(true).Y;
-            int totalBackgroundSize = BarController.AdjustBackgroundSize(barQuantity, backgroundBar.Height * this.config.mainScale, barSpacement) + (backgroundTop.Height * this.config.mainScale) + (backgroundBottom.Height * this.config.mainScale);
+            int totalBackgroundSize = BarController.AdjustBackgroundSize(playerSkills.Count(), backgroundBar.Height * this.config.mainScale, barSpacement) + (backgroundTop.Height * this.config.mainScale) + (backgroundBottom.Height * this.config.mainScale);
 
             //Reset button check click
             if (mousePos.X >= configButtonPosX + 75 && mousePos.X <= configButtonPosX + 75 + (buttonReset.Width * 3) &&
