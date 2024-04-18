@@ -35,6 +35,7 @@ namespace AbilitiesExperienceBars
 
         public bool animateSkill;
         public bool expIncreasing;
+        public bool expPopup;
         public bool actualExpGainedMessage;
         public int expGained;
         public byte expAlpha;
@@ -48,8 +49,6 @@ namespace AbilitiesExperienceBars
         {
             // Set the skill ID
             skillID = ID;
-            //iconIndex = iIndex;
-            //colorIndex = cIndex;
 
             // Load Skill Icon
             skillIcon = Helper.ModContent.Load<Texture2D>("assets/ui/icons/" + iconFilename + ".png");
@@ -208,6 +207,7 @@ namespace AbilitiesExperienceBars
             expAlpha = 0;
 
             // Set Experience Bools
+            expPopup = true;
             expIncreasing = true;
             animateSkill = true;
 
@@ -235,6 +235,7 @@ namespace AbilitiesExperienceBars
             backgroundBottom,
             backgroundFiller,
             backgroundBar,
+            backgroundPopupBar,
             backgroundExp,
             barFiller,
             backgroundBoxConfig,
@@ -273,16 +274,25 @@ namespace AbilitiesExperienceBars
         private bool canShowLevelUp;
         private bool canCountTimer;
 
+        private bool canShowPopupExp;
+        private bool canCountPopupTimer;
+
         // Data Variables
         public ModEntry instance;
         private ModConfig config;
 
         // Timer Variables
         private float timeLeft;
+        private float timeLeftPopup;
 
         // Level Up Variables
         Texture2D levelUpIcon;
         string levelUpMessage;
+
+        // Experience Popup
+        skillHolder popupSkill;
+        bool sampleRunOnce;
+
         #endregion
 
         public override void Entry(IModHelper helper)
@@ -313,6 +323,10 @@ namespace AbilitiesExperienceBars
                 );
 
                 // Keybinds
+                configMenu.AddSectionTitle(
+                    mod: ModManifest,
+                    text: () => Helper.Translation.Get("KeybindsM")
+                );
                 configMenu.AddKeybind(
                     mod: ModManifest,
                     name: () => Helper.Translation.Get("ToggleKey"),
@@ -335,7 +349,11 @@ namespace AbilitiesExperienceBars
                     setValue: value => config.ResetKey = value
                 );
 
-                // Toggles
+                // Interface
+                configMenu.AddSectionTitle(
+                    mod: ModManifest,
+                    text: () => Helper.Translation.Get("ExperienceBarM")
+                );
                 configMenu.AddBoolOption(
                     mod: ModManifest,
                     name: () => Helper.Translation.Get("ShowButtons"),
@@ -345,10 +363,10 @@ namespace AbilitiesExperienceBars
                 );
                 configMenu.AddBoolOption(
                     mod: ModManifest,
-                    name: () => Helper.Translation.Get("ShowExperienceInfo"),
-                    tooltip: () => Helper.Translation.Get("ShowExperienceInfoT"),
-                    getValue: () => config.ShowExperienceInfo,
-                    setValue: value => config.ShowExperienceInfo = value
+                    name: () => Helper.Translation.Get("ShowUI"),
+                    tooltip: () => Helper.Translation.Get("ShowUIT"),
+                    getValue: () => config.ShowUI,
+                    setValue: value => config.ShowUI = value
                 );
                 configMenu.AddBoolOption(
                     mod: ModManifest,
@@ -359,25 +377,10 @@ namespace AbilitiesExperienceBars
                 );
                 configMenu.AddBoolOption(
                     mod: ModManifest,
-                    name: () => Helper.Translation.Get("ShowLevelUp"),
-                    tooltip: () => Helper.Translation.Get("ShowLevelUpT"),
-                    getValue: () => config.ShowLevelUp,
-                    setValue: value => config.ShowLevelUp = value
-                );
-                configMenu.AddBoolOption(
-                    mod: ModManifest,
-                    name: () => Helper.Translation.Get("ShowUI"),
-                    tooltip: () => Helper.Translation.Get("ShowUIT"),
-                    getValue: () => config.ShowUI,
-                    setValue: value => config.ShowUI = value
-                );
-
-                configMenu.AddNumberOption(
-                    mod: ModManifest,
-                    name: () => Helper.Translation.Get("LevelUpMessageDuration"),
-                    tooltip: () => Helper.Translation.Get("LevelUpMessageDurationT"),
-                    getValue: () => config.LevelUpMessageDuration,
-                    setValue: value => config.LevelUpMessageDuration = value
+                    name: () => Helper.Translation.Get("ShowExperienceInfo"),
+                    tooltip: () => Helper.Translation.Get("ShowExperienceInfoT"),
+                    getValue: () => config.ShowExperienceInfo,
+                    setValue: value => config.ShowExperienceInfo = value
                 );
                 configMenu.AddNumberOption(
                     mod: ModManifest,
@@ -397,10 +400,90 @@ namespace AbilitiesExperienceBars
                     mod: ModManifest,
                     name: () => Helper.Translation.Get("mainScale"),
                     tooltip: () => Helper.Translation.Get("mainScaleT"),
+                    min: 1,
+                    max: 6,
+                    interval: 1,
                     getValue: () => config.mainScale,
                     setValue: value => config.mainScale = value
                 );
 
+                // Experience Popup
+                configMenu.AddSectionTitle(
+                    mod: ModManifest,
+                    text: () => Helper.Translation.Get("ExperiencePopupM")
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowPopup"),
+                    tooltip: () => Helper.Translation.Get("ShowPopupT"),
+                    getValue: () => config.ShowExpPopup,
+                    setValue: value => config.ShowExpPopup = value
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowExperienceInfo"),
+                    tooltip: () => Helper.Translation.Get("ShowExperienceInfoT"),
+                    getValue: () => config.ShowExperiencePopupInfo,
+                    setValue: value => config.ShowExperiencePopupInfo = value
+                );
+                configMenu.AddNumberOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("PopupMessageDuration"),
+                    tooltip: () => Helper.Translation.Get("PopupMessageDurationT"),
+                    getValue: () => config.PopupMessageDuration,
+                    setValue: value => config.PopupMessageDuration = value
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowExpPopupTest"),
+                    tooltip: () => Helper.Translation.Get("ShowExpPopupTestT"),
+                    getValue: () => config.ShowExpPopupTest,
+                    setValue: value => config.ShowExpPopupTest = value
+                );
+                configMenu.AddNumberOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("popupPosX"),
+                    tooltip: () => Helper.Translation.Get("popupPosXT"),
+                    getValue: () => config.popupPosX,
+                    setValue: value => config.popupPosX = value
+                );
+                configMenu.AddNumberOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("popupPosY"),
+                    tooltip: () => Helper.Translation.Get("popupPosYT"),
+                    getValue: () => config.popupPosY,
+                    setValue: value => config.popupPosY = value
+                );
+                configMenu.AddNumberOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("popupScale"),
+                    tooltip: () => Helper.Translation.Get("popupScaleT"),
+                    min: 1,
+                    max: 6,
+                    interval: 1,
+                    getValue: () => config.popupScale,
+                    setValue: value => config.popupScale = value
+                );
+
+                // Level Up Windows
+                configMenu.AddSectionTitle(
+                    mod: ModManifest,
+                    text: () => Helper.Translation.Get("LevelUpM")
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowLevelUp"),
+                    tooltip: () => Helper.Translation.Get("ShowLevelUpT"),
+                    getValue: () => config.ShowLevelUp,
+                    setValue: value => config.ShowLevelUp = value
+                );
+                configMenu.AddNumberOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("LevelUpMessageDuration"),
+                    tooltip: () => Helper.Translation.Get("LevelUpMessageDurationT"),
+                    getValue: () => config.LevelUpMessageDuration,
+                    setValue: value => config.LevelUpMessageDuration = value
+                );
             }
         }
 
@@ -482,9 +565,11 @@ namespace AbilitiesExperienceBars
             this.config.mainPosY = 125;
             this.config.mainScale = 3;
             this.config.ShowBoxBackground = true;
+            this.config.ShowExpPopup = false;
             this.config.ShowLevelUp = true;
             this.config.ShowExperienceInfo = true;
             this.config.LevelUpMessageDuration = 4;
+            this.config.PopupMessageDuration = 4;
             saveInfo();
             ajustInfos();
         }
@@ -501,6 +586,7 @@ namespace AbilitiesExperienceBars
             backgroundBottom = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundBottom.png");
             backgroundFiller = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundFiller.png");
 
+            backgroundPopupBar = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundPopupBar.png");
             backgroundBar = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundBar.png");
             barFiller = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/barFiller.png");
 
@@ -555,6 +641,7 @@ namespace AbilitiesExperienceBars
 
         private void onRenderedHud(object sender, RenderedHudEventArgs e)
         {
+            // Show Level up Window
             if (canShowLevelUp && this.config.ShowLevelUp)
             {
                 e.SpriteBatch.Draw(backgroundLevelUp, new Rectangle((Game1.uiViewport.Width / 2) - (backgroundLevelUp.Width * 3) / 2, levelUpPosY, backgroundLevelUp.Width * 3, backgroundLevelUp.Height * 3), Color.White);
@@ -565,6 +652,95 @@ namespace AbilitiesExperienceBars
             }
 
             if (!Context.IsWorldReady || Game1.CurrentEvent != null) return;
+
+            
+            // Test Experience Popup
+            if (this.config.ShowExpPopupTest)
+            {
+                canCountPopupTimer = true;
+                popupSkill = playerSkills[0];
+                sampleRunOnce = false;
+            }
+            else if (!sampleRunOnce)
+            {
+                canCountPopupTimer = false;
+                popupSkill = null;
+                sampleRunOnce = true;
+            }
+
+            // Experience Popup
+            if (canCountPopupTimer && popupSkill != null && this.config.ShowExpPopup)
+            {
+                // Dont draw bar if experience is maxed
+                if (popupSkill.currentLevel >= 10) return;
+
+                // Bar position
+                int barPosX = this.config.popupPosX;
+                int barPosY = this.config.popupPosY;
+
+                // Draw bars background
+                e.SpriteBatch.Draw(backgroundPopupBar,
+                    new Rectangle(barPosX, barPosY, backgroundPopupBar.Width * this.config.popupScale, backgroundPopupBar.Height * this.config.popupScale),
+                    globalChangeColor);
+
+
+                // Draw icons
+                e.SpriteBatch.Draw(popupSkill.skillIcon, new Rectangle(barPosX + (((26 * this.config.popupScale) / 2) - ((popupSkill.skillIcon.Width * this.config.popupScale) / 2)),
+                    barPosY + (((24 * this.config.popupScale) / 2) - (int)MyHelper.GetSpriteCenter(popupSkill.skillIcon,
+                    this.config.popupScale).Y), popupSkill.skillIcon.Width * this.config.popupScale, popupSkill.skillIcon.Height * this.config.popupScale),
+                    globalChangeColor);
+
+                // Draw level text
+                int posNumber;
+                if (popupSkill.currentLevel < 10) posNumber = 34;
+                else if (popupSkill.currentLevel < 100) posNumber = 37;
+                else posNumber = 40;
+
+                NumberSprite.draw(popupSkill.currentLevel,
+                    e.SpriteBatch,
+                    new Vector2(barPosX + (posNumber * this.config.popupScale), barPosY + (12 * this.config.popupScale)),
+                    globalChangeColor,
+                    BarController.AdjustLevelScale(this.config.popupScale, popupSkill.currentLevel, maxLevel),
+                    0, 1, 0);
+
+                // Draw Experience Bars
+                Color barColor;
+                if (popupSkill.currentLevel >= maxLevel) barColor = popupSkill.skillFinalColor;
+                else barColor = popupSkill.skillColor;
+
+                e.SpriteBatch.Draw(barFiller,
+                    BarController.GetExperienceBar(new Vector2(barPosX + (43 * this.config.popupScale), barPosY + ((25 * this.config.popupScale) / 2) - ((barFiller.Height * this.config.popupScale) / 2)),
+                        new Vector2(58, barFiller.Height), 
+                        popupSkill.currentEXP,
+                        popupSkill.currentLevel,
+                        maxLevel,
+                        this.config.popupScale),
+                    barColor);
+
+                // Draw Experience Text
+                if (this.config.ShowExperiencePopupInfo)
+                {
+                    byte alpha;
+                    Color actualColor;
+                    if (popupSkill.currentLevel < maxLevel)
+                    {
+                        actualColor = popupSkill.skillColor;
+                        alpha = popupSkill.skillColor.A;
+                    }
+                    else
+                    {
+                        actualColor = popupSkill.skillFinalColor;
+                        alpha = popupSkill.skillFinalColor.A;
+                    }
+                    e.SpriteBatch.DrawString(Game1.dialogueFont,
+                        BarController.GetExperienceText(popupSkill.currentEXP, popupSkill.currentLevel, maxLevel),
+                        new Vector2(barPosX + (43 * this.config.popupScale) + 5,
+                        barPosY + ((25 * this.config.popupScale) / 2) - ((barFiller.Height * this.config.popupScale) / 2)),
+                        MyHelper.ChangeColorIntensity(actualColor, 0.45f, alpha), 0f, Vector2.Zero,
+                        BarController.AdjustExperienceScale(this.config.popupScale), SpriteEffects.None, 1);
+                }
+            }
+
 
             // In-Config background
             if (inConfigMode)
@@ -742,6 +918,9 @@ namespace AbilitiesExperienceBars
             expTimer();
             expAlphaChanger();
 
+            // Experience Popup Timer
+            expPopupTimer();
+
             // Level Up Check
             checkLevelGain();
             levelUpTimer();
@@ -767,7 +946,19 @@ namespace AbilitiesExperienceBars
         private void checkExperienceGain()
         {
             foreach (skillHolder sh in playerSkills)
+            {
                 sh.GainExperience();
+
+                // Show popup window
+                if (sh.expIncreasing && this.config.ShowExpPopup) 
+                {
+                    popupSkill = sh;
+                    timeLeftPopup = this.config.PopupMessageDuration * 60;
+                    canCountPopupTimer = true;
+
+                }
+
+            }
         }
 
         private void expTimer()
@@ -881,6 +1072,20 @@ namespace AbilitiesExperienceBars
             }
         }
 
+
+        private void expPopupTimer()
+        {
+            if (!canCountPopupTimer) return;
+            if (timeLeftPopup > 0) timeLeftPopup--;
+            else
+            {
+                canCountPopupTimer = false;
+                popupSkill = null;
+                foreach (skillHolder sh in playerSkills)
+                    sh.expPopup = false;
+            }
+        }
+
         private void checkLevelGain()
         {
             foreach (skillHolder sh in playerSkills)
@@ -895,7 +1100,8 @@ namespace AbilitiesExperienceBars
 
                     // Set Level up window and bool
                     levelUpPosY = (int)new Vector2(0, 0 - (backgroundLevelUp.Height * 3) - 5).Y;
-                    animLevelUpDir = "bottom"; animDestPosLevelUp = new Vector2(0, 150);
+                    animLevelUpDir = "bottom";
+                    animDestPosLevelUp = new Vector2(0, 150);
                     animatingLevelUp = true;
 
                     // Play Level Up Sound
@@ -913,7 +1119,8 @@ namespace AbilitiesExperienceBars
             else
             {
                 canCountTimer = false;
-                animLevelUpDir = "top"; animDestPosLevelUp = new Vector2(0, 0 - (backgroundLevelUp.Height * 3) - 5);
+                animLevelUpDir = "top";
+                animDestPosLevelUp = new Vector2(0, 0 - (backgroundLevelUp.Height * 3) - 5);
                 animatingLevelUp = true;
             }
         }

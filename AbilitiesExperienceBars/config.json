@@ -5,6 +5,7 @@
   "ShowButtons": true,
   "ShowExperienceInfo": true,
   "ShowBoxBackground": true,
+  "ShowExpPopup": true,
   "ShowLevelUp": true,
   "ShowUI": true,
   "LevelUpMessageDuration": 4,
