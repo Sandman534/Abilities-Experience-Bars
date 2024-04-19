@@ -321,6 +321,9 @@ namespace AbilitiesExperienceBars
         skillHolder popupSkill;
         bool sampleRunOnce;
 
+        // API
+        private ISpaceCoreApi _SpaceCoreApi;
+
         #endregion
 
         public override void Entry(IModHelper helper)
@@ -364,7 +367,7 @@ namespace AbilitiesExperienceBars
                     tooltip: () => Helper.Translation.Get("ThemeT"),
                     allowedValues: dirs.ToArray(),
                     getValue: () => config.UITheme,
-                    setValue: value => config.UITheme = value
+                    setValue: value => reloadUI(value)
                 );
 
                 // Keybinds
@@ -532,6 +535,12 @@ namespace AbilitiesExperienceBars
             }
         }
 
+        private void reloadUI(string value)
+        {
+            config.UITheme = value;
+            loadTextures();
+        }
+
         private void repositionExpInfo()
         {
             if (!Context.IsWorldReady) return;
@@ -561,7 +570,7 @@ namespace AbilitiesExperienceBars
 
         private void configAdjust()
         {
-            // Adjust Decrease Size Button color and value
+            // Main Window Scale Catch
             if (this.config.mainScale < 1 || this.config.mainScale == 1)
             {
                 this.config.mainScale = 1;
@@ -570,7 +579,6 @@ namespace AbilitiesExperienceBars
             else
                 decreaseSizeButtonColor = Color.White;
 
-            // Adjust Increase Size Button color and value
             if (this.config.mainScale > 5 || this.config.mainScale == 5)
             {
                 this.config.mainScale = 5;
@@ -578,6 +586,13 @@ namespace AbilitiesExperienceBars
             }
             else
                 increaseSizeButtonColor = Color.White;
+
+            // Popup Scale Catch
+            if (this.config.popupScale < 1)
+                this.config.popupScale = 1;
+
+            if (this.config.popupScale > 5)
+                this.config.popupScale = 5;
 
             // Adjust Background Button color
             if (!this.config.ShowBoxBackground)
@@ -597,11 +612,15 @@ namespace AbilitiesExperienceBars
             else
                 experienceButtonColor = Color.White;
 
-            // Level up message duration
+            // Level up message duration catch
             if (this.config.LevelUpMessageDuration < 1)
                 this.config.LevelUpMessageDuration = 1;
 
-            // Default UI Theme
+            // Popup message duration catch
+            if (this.config.PopupMessageDuration < 1)
+                this.config.PopupMessageDuration = 1;
+
+            // Default UI theme catch
             if (this.config.UITheme == null)
                 this.config.UITheme = "Vanilla";
 
