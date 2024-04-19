@@ -6,18 +6,20 @@ using SpaceShared.APIs;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Locations;
 using StardewValley.Objects;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using static SpaceCore.Skills;
 
 namespace AbilitiesExperienceBars
 {
     public class skillHolder
     {
-        private string skillID;
+        public string skillID;
 
         public Texture2D skillIcon;
 
@@ -25,9 +27,6 @@ namespace AbilitiesExperienceBars
         public Color skillRestorationColor;
         public Color skillFinalColor = new Color(150, 175, 55);
         public Color skillGoldColor = new Color(150, 175, 55);
-
-        public int iconIndex;
-        public int colorIndex;
 
         public int currentEXP;
         public int previousEXP;
@@ -46,6 +45,9 @@ namespace AbilitiesExperienceBars
 
         public int timeExpMessageLeft;
 
+        public bool isMastery;
+        public int maxLevel;
+
         public skillHolder(IModHelper Helper, string ID, string iconFilename, Color skillColorCode)
         {
             // Set the skill ID
@@ -57,6 +59,18 @@ namespace AbilitiesExperienceBars
             // Load Colors
             skillColor = skillColorCode;
             skillRestorationColor = skillColorCode;
+
+            // Mastery or regular skill
+            if (skillID == "mastery")
+            {
+                isMastery = true;
+                maxLevel = 5;
+            }
+            else
+            {
+                isMastery = false;
+                maxLevel = 10;
+            }
 
             // Set Current Data
             setCurrentData();
@@ -94,6 +108,11 @@ namespace AbilitiesExperienceBars
             {
                 previousLevel = Game1.player.luckLevel.Value;
                 previousEXP = Game1.player.experiencePoints[5];
+            }
+            else if (skillID == "mastery")
+            {
+                previousLevel = (int)Game1.stats.Get("masteryLevelsSpent");
+                previousEXP = (int)Game1.stats.Get("MasteryExp");
             }
 
             // Mod Added Skills
@@ -136,6 +155,11 @@ namespace AbilitiesExperienceBars
             {
                 currentLevel = Game1.player.luckLevel.Value;
                 currentEXP = Game1.player.experiencePoints[5];
+            }
+            else if (skillID == "mastery")
+            {
+                currentLevel = (int)Game1.stats.Get("masteryLevelsSpent");
+                currentEXP = (int)Game1.stats.Get("MasteryExp");
             }
 
             // Mod Added Skills
@@ -225,7 +249,6 @@ namespace AbilitiesExperienceBars
         // Private Variables
         private int configButtonPosX = 25, configButtonPosY = 10;
         private int defaultButtonPosX = 25, defaultButtonPosY = 10;
-        private int maxLevel = 10;
         private int levelUpPosY;
         private bool inConfigMode;
         private int expAdvicePositionX;
@@ -281,6 +304,10 @@ namespace AbilitiesExperienceBars
         // Data Variables
         public ModEntry instance;
         private ModConfig config;
+
+        // Mastery Variables
+        private List<string> masterySkills = new List<string> { "farming", "fishing", "foraging", "mining", "combat" };
+        private bool masteryProcessed;
 
         // Timer Variables
         private float timeLeft;
@@ -733,7 +760,7 @@ namespace AbilitiesExperienceBars
 
 
                 // Draw icons
-                e.SpriteBatch.Draw(popupSkill.skillIcon, new Rectangle(barPosX + (((26 * this.config.popupScale) / 2) - ((popupSkill.skillIcon.Width * this.config.popupScale) / 2)),
+                e.SpriteBatch.Draw(popupSkill.skillIcon, new Rectangle(barPosX + (((27 * this.config.popupScale) / 2) - ((popupSkill.skillIcon.Width * this.config.popupScale) / 2)),
                     barPosY + (((24 * this.config.popupScale) / 2) - (int)MyHelper.GetSpriteCenter(popupSkill.skillIcon,
                     this.config.popupScale).Y), popupSkill.skillIcon.Width * this.config.popupScale, popupSkill.skillIcon.Height * this.config.popupScale),
                     globalChangeColor);
@@ -748,12 +775,12 @@ namespace AbilitiesExperienceBars
                     e.SpriteBatch,
                     new Vector2(barPosX + (posNumber * this.config.popupScale), barPosY + (12 * this.config.popupScale)),
                     globalChangeColor,
-                    BarController.AdjustLevelScale(this.config.popupScale, popupSkill.currentLevel, maxLevel),
+                    BarController.AdjustLevelScale(this.config.popupScale, popupSkill.currentLevel, popupSkill.maxLevel),
                     0, 1, 0);
 
                 // Draw Experience Bars
                 Color barColor;
-                if (popupSkill.currentLevel >= maxLevel) barColor = popupSkill.skillFinalColor;
+                if (popupSkill.currentLevel >= popupSkill.maxLevel) barColor = popupSkill.skillFinalColor;
                 else barColor = popupSkill.skillColor;
 
                 e.SpriteBatch.Draw(barFiller,
@@ -761,8 +788,9 @@ namespace AbilitiesExperienceBars
                         new Vector2(58, barFiller.Height), 
                         popupSkill.currentEXP,
                         popupSkill.currentLevel,
-                        maxLevel,
-                        this.config.popupScale),
+                        popupSkill.maxLevel,
+                        this.config.popupScale,
+                        popupSkill.isMastery),
                     barColor);
 
                 // Draw Experience Text
@@ -770,7 +798,7 @@ namespace AbilitiesExperienceBars
                 {
                     byte alpha;
                     Color actualColor;
-                    if (popupSkill.currentLevel < maxLevel)
+                    if (popupSkill.currentLevel < popupSkill.maxLevel)
                     {
                         actualColor = popupSkill.skillColor;
                         alpha = popupSkill.skillColor.A;
@@ -781,7 +809,7 @@ namespace AbilitiesExperienceBars
                         alpha = popupSkill.skillFinalColor.A;
                     }
                     e.SpriteBatch.DrawString(Game1.dialogueFont,
-                        BarController.GetExperienceText(popupSkill.currentEXP, popupSkill.currentLevel, maxLevel),
+                        BarController.GetExperienceText(popupSkill.currentEXP, popupSkill.currentLevel, popupSkill.maxLevel, popupSkill.isMastery),
                         new Vector2(barPosX + (43 * this.config.popupScale) + 5,
                         barPosY + ((25 * this.config.popupScale) / 2) - ((barFiller.Height * this.config.popupScale) / 2)),
                         MyHelper.ChangeColorIntensity(actualColor, 0.45f, alpha), 0f, Vector2.Zero,
@@ -860,7 +888,7 @@ namespace AbilitiesExperienceBars
 
 
                 // Draw icons
-                e.SpriteBatch.Draw(sh.skillIcon, new Rectangle(barPosX + (((26 * this.config.mainScale) / 2) - ((sh.skillIcon.Width * this.config.mainScale) / 2)),
+                e.SpriteBatch.Draw(sh.skillIcon, new Rectangle(barPosX + (((27 * this.config.mainScale) / 2) - ((sh.skillIcon.Width * this.config.mainScale) / 2)),
                     posControlY + (((24 * this.config.mainScale) / 2) - (int)MyHelper.GetSpriteCenter(sh.skillIcon,
                     this.config.mainScale).Y), sh.skillIcon.Width * this.config.mainScale, sh.skillIcon.Height * this.config.mainScale),
                     globalChangeColor);
@@ -875,16 +903,16 @@ namespace AbilitiesExperienceBars
                     e.SpriteBatch,
                     new Vector2(barPosX + (posNumber * this.config.mainScale), posControlY + (12 * this.config.mainScale)),
                     globalChangeColor,
-                    BarController.AdjustLevelScale(this.config.mainScale, sh.currentLevel, maxLevel),
+                    BarController.AdjustLevelScale(this.config.mainScale, sh.currentLevel, sh.maxLevel),
                     0, 1, 0);
 
                 // Draw Experience Bars
                 Color barColor;
                 if (draggingBox)
-                    if (sh.currentLevel >= maxLevel) barColor = MyHelper.ChangeColorIntensity(sh.skillFinalColor, 0.35f, 1);
+                    if (sh.currentLevel >= sh.maxLevel) barColor = MyHelper.ChangeColorIntensity(sh.skillFinalColor, 0.35f, 1);
                     else barColor = MyHelper.ChangeColorIntensity(sh.skillColor, 0.35f, 1);
                 else
-                    if (sh.currentLevel >= maxLevel) barColor = sh.skillFinalColor;
+                    if (sh.currentLevel >= sh.maxLevel) barColor = sh.skillFinalColor;
                     else barColor = sh.skillColor;
 
                 e.SpriteBatch.Draw(barFiller,
@@ -892,8 +920,9 @@ namespace AbilitiesExperienceBars
                     posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)),
                     new Vector2(83, barFiller.Height), sh.currentEXP,
                     sh.currentLevel,
-                    maxLevel,
-                    this.config.mainScale),
+                    sh.maxLevel,
+                    this.config.mainScale,
+                    sh.isMastery),
                     barColor);
                     
                 // Draw Experience Text
@@ -901,7 +930,7 @@ namespace AbilitiesExperienceBars
                 {
                     byte alpha;
                     Color actualColor;
-                    if (sh.currentLevel < maxLevel)
+                    if (sh.currentLevel < sh.maxLevel)
                     {
                         actualColor = sh.skillColor;
                         alpha = sh.skillColor.A;
@@ -912,7 +941,7 @@ namespace AbilitiesExperienceBars
                         alpha = sh.skillFinalColor.A;
                     }
                     e.SpriteBatch.DrawString(Game1.dialogueFont,
-                        BarController.GetExperienceText(sh.currentEXP, sh.currentLevel, maxLevel),
+                        BarController.GetExperienceText(sh.currentEXP, sh.currentLevel, sh.maxLevel, sh.isMastery),
                         new Vector2(barPosX + (43 * this.config.mainScale) + 5,
                         posControlY + ((25 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)),
                         MyHelper.ChangeColorIntensity(actualColor, 0.45f, alpha), 0f, Vector2.Zero, 
@@ -944,6 +973,9 @@ namespace AbilitiesExperienceBars
 
         private void onSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
+            // Reset player skills   
+            playerSkills = new List<skillHolder>();
+
             // Get current and load Previous
             getPlayerInformation();
             foreach (skillHolder sh in playerSkills)
@@ -1018,7 +1050,6 @@ namespace AbilitiesExperienceBars
                 {
                     // Skill Info
                     int actualSkillLevel = sh.currentLevel;
-                    int toColor = sh.colorIndex;
 
                     // Color Values
                     int virtualColorValue;
@@ -1137,7 +1168,7 @@ namespace AbilitiesExperienceBars
         {
             foreach (skillHolder sh in playerSkills)
             {
-                if (sh.GainLevel())
+                if (sh.GainLevel() && !sh.isMastery)
                 {
                     // Show level up information
                     levelUpIcon = sh.skillIcon;
@@ -1183,6 +1214,16 @@ namespace AbilitiesExperienceBars
             });
         }
 
+        private void playerMasteryCheck()
+        {
+            if (!masteryProcessed && playerSkills.Where(x => (masterySkills.Contains(x.skillID)) && x.currentLevel >= 10).Count() == 5)
+            {
+                playerSkills.RemoveAll(s => masterySkills.Contains(s.skillID));
+                playerSkills.Insert(0, new skillHolder(Helper, "mastery", "mastery", new Color(39, 185, 101)));
+                masteryProcessed = true;
+            }
+        }
+
         private void getPlayerInformation()
         {
             if (playerSkills.Count <= 0)
@@ -1190,6 +1231,9 @@ namespace AbilitiesExperienceBars
             else
                 foreach (skillHolder sh in playerSkills)
                     sh.setCurrentData();
+
+            // Check for player mastery
+            playerMasteryCheck();
         }
 
         private void onButtonPressed(object sender, ButtonPressedEventArgs e)

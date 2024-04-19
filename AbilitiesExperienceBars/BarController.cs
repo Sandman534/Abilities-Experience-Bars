@@ -6,31 +6,38 @@ namespace AbilitiesExperienceBars
     {
         //Control Vars
         private static int[] expPerLevel = new int[] { 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000 };
+        private static int[] expPerMasteryLevel = new int[] { 10000, 25000, 45000, 70000, 100000 };
 
         //Functions
-        public static Rectangle GetExperienceBar(Vector2 barPosition, Vector2 barSize, int actualExp, int level, int maxPossibleLevel, int scale)
+        public static Rectangle GetExperienceBar(Vector2 barPosition, Vector2 barSize, int actualExp, int level, int maxPossibleLevel, int scale, bool isMastery)
         {
+            int[] levelRange = expPerLevel;
+            if (isMastery) levelRange = expPerMasteryLevel;
+
             float percentage;
-            if (level >= maxPossibleLevel)
+            if (level >= maxPossibleLevel || actualExp > levelRange[level])
                 percentage = barSize.X;
             else if (level == 0)
-                percentage = ((float)actualExp / (float)expPerLevel[level]) * barSize.X;
+                percentage = ((float)actualExp / (float)levelRange[level]) * barSize.X;
             else
-                percentage = ((float)actualExp - (float)expPerLevel[level - 1]) / ((float)expPerLevel[level] - (float)expPerLevel[level - 1]) * barSize.X;
+                percentage = ((float)actualExp - (float)levelRange[level - 1]) / ((float)levelRange[level] - (float)levelRange[level - 1]) * barSize.X;
 
             Rectangle barRect = new Rectangle((int)barPosition.X, (int)barPosition.Y, (int)percentage * scale, (int)barSize.Y * scale);
             return barRect;
         }
-        public static string GetExperienceText(int actualExp, int level, int maxPossibleLevel)
+        public static string GetExperienceText(int actualExp, int level, int maxPossibleLevel, bool isMastery)
         {
+            int[] levelRange = expPerLevel;
+            if (isMastery) levelRange = expPerMasteryLevel;
+
             string expText;
 
             if (level == 0)
-                expText = $"{actualExp}/{expPerLevel[level]}";
+                expText = $"{actualExp}/{levelRange[level]}";
             else if (level >= maxPossibleLevel)
                 expText = $"{actualExp} exp.";
             else
-                expText = $"{actualExp - expPerLevel[level - 1]}/{expPerLevel[level] - expPerLevel[level - 1]}";
+                expText = $"{actualExp - levelRange[level - 1]}/{levelRange[level] - levelRange[level - 1]}";
 
             return expText;
         }
