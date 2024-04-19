@@ -6,6 +6,7 @@ using SpaceShared.APIs;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Objects;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -51,7 +52,7 @@ namespace AbilitiesExperienceBars
             skillID = ID;
 
             // Load Skill Icon
-            skillIcon = Helper.ModContent.Load<Texture2D>("assets/ui/icons/" + iconFilename + ".png");
+            skillIcon = Helper.ModContent.Load<Texture2D>($"assets/ui/icons/{iconFilename}.png");
 
             // Load Colors
             skillColor = skillColorCode;
@@ -298,7 +299,7 @@ namespace AbilitiesExperienceBars
         public override void Entry(IModHelper helper)
         {
             instance = this;
-            getInfo();
+            configGet();
             loadTextures();
             loadSound();
 
@@ -313,6 +314,14 @@ namespace AbilitiesExperienceBars
 
         private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
         {
+            // Get Installed Themes
+            var rootDir = Path.Combine(Helper.DirectoryPath, "assets", "ui", "themes");
+            DirectoryInfo directoryInfo = new DirectoryInfo(rootDir);
+            var dirs = new List<string>();
+            foreach (var dir in directoryInfo.GetDirectories())
+                dirs.Add(dir.Name.Replace($"{rootDir}\\", ""));
+
+            // Config Menu
             var configMenu = Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
             if (configMenu != null)
             {
@@ -320,6 +329,15 @@ namespace AbilitiesExperienceBars
                     mod: ModManifest,
                     reset: () => config = new ModConfig(),
                     save: () => Helper.WriteConfig(config)
+                );
+
+                configMenu.AddTextOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("Theme"),
+                    tooltip: () => Helper.Translation.Get("ThemeT"),
+                    allowedValues: dirs.ToArray(),
+                    getValue: () => config.UITheme,
+                    setValue: value => config.UITheme = value
                 );
 
                 // Keybinds
@@ -503,20 +521,20 @@ namespace AbilitiesExperienceBars
             configButtonPosX = MyHelper.AdjustPositionMineLevelWidth(configButtonPosX, e.NewLocation, defaultButtonPosX);
         }
 
-        private void getInfo()
+        private void configGet()
         {
             this.config = this.Helper.ReadConfig<ModConfig>();
-            ajustInfos();
+            configAdjust();
         }
 
-        private void saveInfo()
+        private void configSave()
         {
             this.Helper.WriteConfig(config);
         }
 
-        private void ajustInfos()
+        private void configAdjust()
         {
-            //Adjust Decrease Size Button color and value
+            // Adjust Decrease Size Button color and value
             if (this.config.mainScale < 1 || this.config.mainScale == 1)
             {
                 this.config.mainScale = 1;
@@ -525,7 +543,7 @@ namespace AbilitiesExperienceBars
             else
                 decreaseSizeButtonColor = Color.White;
 
-            //Adjust Increase Size Button color and value
+            // Adjust Increase Size Button color and value
             if (this.config.mainScale > 5 || this.config.mainScale == 5)
             {
                 this.config.mainScale = 5;
@@ -534,44 +552,61 @@ namespace AbilitiesExperienceBars
             else
                 increaseSizeButtonColor = Color.White;
 
-            //Adjust Background Button color
+            // Adjust Background Button color
             if (!this.config.ShowBoxBackground)
                 backgroundButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
             else
                 backgroundButtonColor = Color.White;
 
-            //Adjust Level up Button color
+            // Adjust Level up Button color
             if (!this.config.ShowLevelUp)
                 levelUpButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
             else
                 levelUpButtonColor = Color.White;
 
-            //Adjust Experience Button color
+            // Adjust Experience Button color
             if (!this.config.ShowExperienceInfo)
                 experienceButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
             else
                 experienceButtonColor = Color.White;
 
-            //Level up message duration
+            // Level up message duration
             if (this.config.LevelUpMessageDuration < 1)
                 this.config.LevelUpMessageDuration = 1;
 
-            saveInfo();
+            // Default UI Theme
+            if (this.config.UITheme == null)
+                this.config.UITheme = "Vanilla";
+
+            configSave();
         }
 
-        private void resetInfos()
+        private void configReset()
         {
+            // Experience Bar
+            this.config.ShowUI = true;
+            this.config.ShowBoxBackground = true;
+            this.config.ShowExperienceInfo = true;
             this.config.mainPosX = 25;
             this.config.mainPosY = 125;
             this.config.mainScale = 3;
-            this.config.ShowBoxBackground = true;
+
+            // Popup Settings
             this.config.ShowExpPopup = false;
-            this.config.ShowLevelUp = true;
-            this.config.ShowExperienceInfo = true;
-            this.config.LevelUpMessageDuration = 4;
+            this.config.ShowExpPopupTest = false;
+            this.config.ShowExperiencePopupInfo = true;
             this.config.PopupMessageDuration = 4;
-            saveInfo();
-            ajustInfos();
+            this.config.popupPosX = 25;
+            this.config.popupPosY = 800;
+            this.config.popupScale = 3;
+
+            // Level Up
+            this.config.ShowLevelUp = true;
+            this.config.LevelUpMessageDuration = 4;
+
+            // Save Info
+            configSave();
+            configAdjust();
         }
 
         private void loadSound()
@@ -582,31 +617,44 @@ namespace AbilitiesExperienceBars
 
         private void loadTextures()
         {
-            backgroundTop = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundTop.png");
-            backgroundBottom = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundBottom.png");
-            backgroundFiller = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundFiller.png");
+            // Primary Path
+            string uiPath;
+            if (config.UITheme == null)
+                uiPath = $"assets/ui/themes/Vanilla/";
+            else
+                uiPath = $"assets/ui/themes/{config.UITheme}/";
 
-            backgroundPopupBar = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundPopupBar.png");
-            backgroundBar = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundBar.png");
-            barFiller = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/barFiller.png");
+            // Experience Bar Background
+            backgroundTop = Helper.ModContent.Load<Texture2D>($"{uiPath}backgroundTop.png");
+            backgroundBottom = Helper.ModContent.Load<Texture2D>($"{uiPath}backgroundBottom.png");
+            backgroundFiller = Helper.ModContent.Load<Texture2D>($"{uiPath}backgroundFiller.png");
 
-            backgroundExp = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/expHolder.png");
-            backgroundLevelUp = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundLevelUp.png");
+            // Experience Bar
+            backgroundPopupBar = Helper.ModContent.Load<Texture2D>($"{uiPath}backgroundPopupBar.png");
+            backgroundBar = Helper.ModContent.Load<Texture2D>($"{uiPath}backgroundBar.png");
+            
+            backgroundExp = Helper.ModContent.Load<Texture2D>($"{uiPath}expHolder.png");
+            
 
-            buttonConfig = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/iconBoxConfig.png");
-            buttonConfigApply = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/checkIcon.png");
-            buttonDecreaseSize = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/decreaseSize.png");
-            buttonIncreaseSize = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/increaseSize.png");
-            backgroundButton = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundButton.png");
-            levelUpButton = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/levelUpButton.png");
-            experienceButton = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/experienceButton.png");
-            buttonVisibility = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/visibleIcon.png");
-            buttonHidden = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/hiddenIcon.png");
-            buttonReset = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/resetButton.png");
+            // Configuration Buttons
+            buttonConfig = Helper.ModContent.Load<Texture2D>($"{uiPath}iconBoxConfig.png");
+            buttonConfigApply = Helper.ModContent.Load<Texture2D>($"{uiPath}checkIcon.png");
+            buttonDecreaseSize = Helper.ModContent.Load<Texture2D>($"{uiPath}decreaseSize.png");
+            buttonIncreaseSize = Helper.ModContent.Load<Texture2D>($"{uiPath}increaseSize.png");
+            backgroundButton = Helper.ModContent.Load<Texture2D>($"{uiPath}backgroundButton.png");
+            levelUpButton = Helper.ModContent.Load<Texture2D>($"{uiPath}levelUpButton.png");
+            experienceButton = Helper.ModContent.Load<Texture2D>($"{uiPath}experienceButton.png");
+            buttonVisibility = Helper.ModContent.Load<Texture2D>($"{uiPath}visibleIcon.png");
+            buttonHidden = Helper.ModContent.Load<Texture2D>($"{uiPath}hiddenIcon.png");
+            buttonReset = Helper.ModContent.Load<Texture2D>($"{uiPath}resetButton.png");
 
-            backgroundLevelUp = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundLevelUp.png");
+            // Level Up
+            backgroundLevelUp = Helper.ModContent.Load<Texture2D>($"{uiPath}backgroundLevelUp.png");
 
-            backgroundBoxConfig = Helper.ModContent.Load<Texture2D>("assets/ui/boxes/backgroundBoxConfig.png");
+
+            // Non-Theme Textures
+            backgroundBoxConfig = Helper.ModContent.Load<Texture2D>("assets/ui/backgroundBoxConfig.png");
+            barFiller = Helper.ModContent.Load<Texture2D>("assets/ui/barFiller.png");
         }
 
         private void loadSkills()
@@ -1072,7 +1120,6 @@ namespace AbilitiesExperienceBars
             }
         }
 
-
         private void expPopupTimer()
         {
             if (!canCountPopupTimer) return;
@@ -1159,11 +1206,11 @@ namespace AbilitiesExperienceBars
                 mousePos.Y >= configButtonPosY && mousePos.Y <= configButtonPosY + (buttonReset.Height * 3) &&
                 inConfigMode)
             {
-                resetInfos();
+                configReset();
             }
             //Reset Box Position - Button
             if (e.Button == this.config.ResetKey && inConfigMode)
-                resetInfos();
+                configReset();
 
             //Config button click check - Button
             if (e.Button == this.config.ConfigKey)
@@ -1272,7 +1319,7 @@ namespace AbilitiesExperienceBars
                         this.config.mainScale -= 1;
                         if (this.config.mainScale == 1)
                             decreaseSizeButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-                        saveInfo();
+                        configSave();
                     }
                 }
                 //Increase button click check
@@ -1287,7 +1334,7 @@ namespace AbilitiesExperienceBars
                         this.config.mainScale += 1;
                         if (this.config.mainScale == 5)
                             increaseSizeButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-                        saveInfo();
+                        configSave();
                     }
                 }
 
@@ -1307,7 +1354,7 @@ namespace AbilitiesExperienceBars
                             backgroundButtonColor = Color.White;
                             break;
                     }
-                    saveInfo();
+                    configSave();
                 }
 
                 //Levelup toggler button check click
@@ -1328,7 +1375,7 @@ namespace AbilitiesExperienceBars
                             Game1.addHUDMessage(new HUDMessage("Level up popup ENABLED", 3));
                             break;
                     }
-                    saveInfo();
+                    configSave();
                 }
 
                 //Experience toggler button check click
@@ -1347,7 +1394,7 @@ namespace AbilitiesExperienceBars
                             experienceButtonColor = Color.White;
                             break;
                     }
-                    saveInfo();
+                    configSave();
                 }
 
             }
@@ -1364,7 +1411,7 @@ namespace AbilitiesExperienceBars
                 {
                     draggingBox = false;
                     globalChangeColor = Color.White;
-                    saveInfo();
+                    configSave();
                 }
             }
         }
@@ -1381,7 +1428,7 @@ namespace AbilitiesExperienceBars
                     this.config.ShowUI = true;
                     break;
             }
-            saveInfo();
+            configSave();
         }
 
         private void animateThings()

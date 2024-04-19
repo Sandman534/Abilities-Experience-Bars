@@ -8,6 +8,8 @@ namespace AbilitiesExperienceBars
         public SButton ConfigKey { get; set; }
         public SButton ResetKey { get; set; }
 
+        public string UITheme { get; set; }
+
         public bool ShowButtons { get; set; }
         public bool ShowExperienceInfo { get; set; }
         public bool ShowBoxBackground { get; set; }

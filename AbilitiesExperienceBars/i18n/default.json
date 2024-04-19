@@ -1,5 +1,7 @@
 {
   "LevelUpMessage": "Level Up!",
+  "Theme": "UI Theme",
+  "ThemeT": "Select the UI Theme for the displays",
   "ToggleKey": "Toggle",
   "ToggleKeyT": "Toggle the display of the window",
   "ConfigKey": "Configuration",
