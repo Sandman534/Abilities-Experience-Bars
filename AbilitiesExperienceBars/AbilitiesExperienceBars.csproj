@@ -17,10 +17,4 @@
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.1.1" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="SpaceCore">
-      <HintPath>E:\ModOrganizer\Stardew Valley\mods\SpaceCore\SpaceCore\SpaceCore.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
 </Project>

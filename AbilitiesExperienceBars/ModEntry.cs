@@ -1,38 +1,36 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
-using SpaceCore;
-using SpaceShared.APIs;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
-using StardewValley.Locations;
-using StardewValley.Objects;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
-using static SpaceCore.Skills;
 
 namespace AbilitiesExperienceBars
 {
     public class skillHolder
     {
+        // Skill ID
         public string skillID;
 
+        // Skill Filename
         public Texture2D skillIcon;
 
+        // Skill Colors
         public Color skillColor;
         public Color skillRestorationColor;
         public Color skillFinalColor = new Color(150, 175, 55);
         public Color skillGoldColor = new Color(150, 175, 55);
 
+        // EXP and Level tracking
         public int currentEXP;
         public int previousEXP;
         public int currentLevel;
         public int previousLevel;
 
+        // Animation tracking
         public bool animateSkill;
         public bool expIncreasing;
         public bool expPopup;
@@ -42,16 +40,22 @@ namespace AbilitiesExperienceBars
         public bool inIncrease;
         public bool inWait;
         public bool inDecrease;
-
         public int timeExpMessageLeft;
 
+        // Mastery Test
         public bool isMastery;
         public int maxLevel;
+
+        // API Interface
+        ISpaceCoreApi _spaceCoreAPI;
 
         public skillHolder(IModHelper Helper, string ID, string iconFilename, Color skillColorCode)
         {
             // Set the skill ID
             skillID = ID;
+
+            // Setup API
+            _spaceCoreAPI = Helper.ModRegistry.GetApi<ISpaceCoreApi>("spacechase0.SpaceCore");
 
             // Load Skill Icon
             skillIcon = Helper.ModContent.Load<Texture2D>($"assets/ui/icons/{iconFilename}.png");
@@ -73,100 +77,43 @@ namespace AbilitiesExperienceBars
             }
 
             // Set Current Data
-            setCurrentData();
+            setSkillData(true);
         }
 
-        public void setPreviousData()
+        public void setSkillData(bool isCurrent)
         {
             // Stardew Base Skills
             if (skillID == "farming")
-            {
-                previousLevel = Game1.player.farmingLevel.Value;
-                previousEXP = Game1.player.experiencePoints[0];
-            }
+                setData(Game1.player.farmingLevel.Value, Game1.player.experiencePoints[0], isCurrent);
             else if (skillID == "fishing")
-            {
-                previousLevel = Game1.player.fishingLevel.Value;
-                previousEXP = Game1.player.experiencePoints[1];
-            }
+                setData(Game1.player.fishingLevel.Value, Game1.player.experiencePoints[1], isCurrent);
             else if (skillID == "foraging")
-            {
-                previousLevel = Game1.player.foragingLevel.Value;
-                previousEXP = Game1.player.experiencePoints[2];
-            }
+                setData(Game1.player.foragingLevel.Value, Game1.player.experiencePoints[2], isCurrent);
             else if (skillID == "mining")
-            {
-                previousLevel = Game1.player.miningLevel.Value;
-                previousEXP = Game1.player.experiencePoints[3];
-            }
+                setData(Game1.player.miningLevel.Value, Game1.player.experiencePoints[3], isCurrent);
             else if (skillID == "combat")
-            {
-                previousLevel = Game1.player.combatLevel.Value;
-                previousEXP = Game1.player.experiencePoints[4];
-            }
+                setData(Game1.player.combatLevel.Value, Game1.player.experiencePoints[4], isCurrent);
             else if (skillID == "luck")
-            {
-                previousLevel = Game1.player.luckLevel.Value;
-                previousEXP = Game1.player.experiencePoints[5];
-            }
+                setData(Game1.player.luckLevel.Value, Game1.player.experiencePoints[5], isCurrent);
             else if (skillID == "mastery")
-            {
-                previousLevel = (int)Game1.stats.Get("masteryLevelsSpent");
-                previousEXP = (int)Game1.stats.Get("MasteryExp");
-            }
+                setData((int)Game1.stats.Get("masteryLevelsSpent"), (int)Game1.stats.Get("MasteryExp"), isCurrent);
 
             // Mod Added Skills
-            else
-            {
-                previousLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill(skillID));
-                previousEXP = Game1.player.GetCustomSkillExperience(Skills.GetSkill(skillID));
-            }
+            else if (_spaceCoreAPI != null)
+                setData(_spaceCoreAPI.GetLevelForCustomSkill(Game1.player, skillID), _spaceCoreAPI.GetExperienceForCustomSkill(Game1.player, skillID), isCurrent);
         }
 
-        public void setCurrentData()
+        private void setData(int iLevel, int iExp, bool bCurrent)
         {
-            // Stardew Base Skills
-            if (skillID == "farming")
+            if (bCurrent)
             {
-                currentLevel = Game1.player.farmingLevel.Value;
-                currentEXP = Game1.player.experiencePoints[0];
+                currentLevel = iLevel;
+                currentEXP = iExp;
             }
-            else if (skillID == "fishing")
-            {
-                currentLevel = Game1.player.fishingLevel.Value;
-                currentEXP = Game1.player.experiencePoints[1];
-            }
-            else if (skillID == "foraging")
-            {
-                currentLevel = Game1.player.foragingLevel.Value;
-                currentEXP = Game1.player.experiencePoints[2];
-            }
-            else if (skillID == "mining")
-            {
-                currentLevel = Game1.player.miningLevel.Value;
-                currentEXP = Game1.player.experiencePoints[3];
-            }
-            else if (skillID == "combat")
-            {
-                currentLevel = Game1.player.combatLevel.Value;
-                currentEXP = Game1.player.experiencePoints[4];
-            }
-            else if (skillID == "luck")
-            {
-                currentLevel = Game1.player.luckLevel.Value;
-                currentEXP = Game1.player.experiencePoints[5];
-            }
-            else if (skillID == "mastery")
-            {
-                currentLevel = (int)Game1.stats.Get("masteryLevelsSpent");
-                currentEXP = (int)Game1.stats.Get("MasteryExp");
-            }
-
-            // Mod Added Skills
             else
             {
-                currentLevel = Game1.player.GetCustomSkillLevel(Skills.GetSkill(skillID));
-                currentEXP = Game1.player.GetCustomSkillExperience(Skills.GetSkill(skillID));
+                previousLevel = iLevel;
+                previousEXP = iExp;
             }
         }
 
@@ -297,8 +244,6 @@ namespace AbilitiesExperienceBars
         private bool draggingBox;
         private bool canShowLevelUp;
         private bool canCountTimer;
-
-        private bool canShowPopupExp;
         private bool canCountPopupTimer;
 
         // Data Variables
@@ -316,13 +261,14 @@ namespace AbilitiesExperienceBars
         // Level Up Variables
         Texture2D levelUpIcon;
         string levelUpMessage;
+        string levelUpID = "abilitybars.LevelUp";
 
         // Experience Popup
         skillHolder popupSkill;
         bool sampleRunOnce;
 
-        // API
-        private ISpaceCoreApi _SpaceCoreApi;
+        // Load Control
+        bool loadedSaveFlag;
 
         #endregion
 
@@ -657,8 +603,16 @@ namespace AbilitiesExperienceBars
 
         private void loadSound()
         {
+            // Create cue definition
+            CueDefinition newCueDefinition = new() { name = levelUpID };
+
+            // Load the file into a stream
             var path = Path.Combine(Helper.DirectoryPath, "assets", "sound", "LevelUp.wav");
-            levelUp = SoundEffect.FromStream(new FileStream(path, FileMode.Open)).CreateInstance();
+            SoundEffect levelUp = SoundEffect.FromStream(new FileStream(path, FileMode.Open));
+
+            // Set the cue definition and load it into the soundbank
+            newCueDefinition.SetSound(levelUp, Game1.audioEngine.GetCategoryIndex("Sound"));
+            Game1.soundBank.AddCue(newCueDefinition);
         }
 
         private void loadTextures()
@@ -995,11 +949,10 @@ namespace AbilitiesExperienceBars
             // Reset player skills   
             playerSkills = new List<skillHolder>();
 
-            // Get current and load Previous
-            getPlayerInformation();
-            foreach (skillHolder sh in playerSkills)
-                sh.setPreviousData();
-
+            // Set Load Flag for later data
+            loadedSaveFlag = false;
+            
+            // Adjust width for Mine level    
             configButtonPosX = MyHelper.AdjustPositionMineLevelWidth(configButtonPosX, Game1.player.currentLocation, defaultButtonPosX);
         }
 
@@ -1010,6 +963,7 @@ namespace AbilitiesExperienceBars
             // Get New Player Info
             getPlayerInformation();
 
+            // Animate experience or level gains
             animateThings();
 
             // Experience Gain Check
@@ -1202,7 +1156,7 @@ namespace AbilitiesExperienceBars
                     animatingLevelUp = true;
 
                     // Play Level Up Sound
-                    levelUpSound();
+                    Game1.playSound(levelUpID);
                 }
             }
         }
@@ -1222,37 +1176,31 @@ namespace AbilitiesExperienceBars
             }
         }
 
-        private void levelUpSound()
+        private void getPlayerInformation()
         {
-            if (levelUp == null) return;
+            // Load skills or just set current data
+            if (playerSkills.Count <= 0)
+                loadSkills();
+            else
+                foreach (skillHolder sh in playerSkills)
+                    sh.setSkillData(true);
 
-            levelUp.Volume = Game1.options.soundVolumeLevel;
-            Task.Factory.StartNew(async () => { 
-                await Task.Delay(200);
-                levelUp?.Play();
-            });
-        }
+            // Load prior data if we just loaded a save - SpaceCore skill data is no available immedietly on load
+            if (!loadedSaveFlag)
+            {
+                foreach (skillHolder sh in playerSkills)
+                    sh.setSkillData(false);
 
-        private void playerMasteryCheck()
-        {
+                loadedSaveFlag = true;
+            }
+
+            // Check for player mastery
             if (!masteryProcessed && playerSkills.Where(x => (masterySkills.Contains(x.skillID)) && x.currentLevel >= 10).Count() == 5)
             {
                 playerSkills.RemoveAll(s => masterySkills.Contains(s.skillID));
                 playerSkills.Insert(0, new skillHolder(Helper, "mastery", "mastery", new Color(39, 185, 101)));
                 masteryProcessed = true;
             }
-        }
-
-        private void getPlayerInformation()
-        {
-            if (playerSkills.Count <= 0)
-                loadSkills();
-            else
-                foreach (skillHolder sh in playerSkills)
-                    sh.setCurrentData();
-
-            // Check for player mastery
-            playerMasteryCheck();
         }
 
         private void onButtonPressed(object sender, ButtonPressedEventArgs e)
