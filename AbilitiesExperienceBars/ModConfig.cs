@@ -9,6 +9,7 @@ namespace AbilitiesExperienceBars
         public SButton ResetKey { get; set; }
 
         public string UITheme { get; set; }
+        public bool SmallIcons { get; set; }
 
         public bool ShowButtons { get; set; }
         public bool ShowExperienceInfo { get; set; }
@@ -19,6 +20,8 @@ namespace AbilitiesExperienceBars
         public bool ShowExpPopup { get; set; }
         public bool ShowExpPopupTest { get; set; }
         public bool ShowExperiencePopupInfo { get; set; }
+
+        public bool LevelUpSound { get; set; }
 
         public float LevelUpMessageDuration { get; set; }
         public float PopupMessageDuration { get; set; }

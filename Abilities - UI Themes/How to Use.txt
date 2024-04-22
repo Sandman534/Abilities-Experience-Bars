@@ -1,4 +1,0 @@
-This is NOT a mod! Don't put it in the mods folder!
-
-Instalation:
-Just copy the .png files that you want and paste in the Abilities Assets/ui/boxes folder.
