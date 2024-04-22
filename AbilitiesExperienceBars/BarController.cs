@@ -5,8 +5,8 @@ namespace AbilitiesExperienceBars
     public static class BarController
     {
         //Control Vars
-        private static int[] expPerLevel = new int[] { 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000 };
-        private static int[] expPerMasteryLevel = new int[] { 10000, 25000, 45000, 70000, 100000 };
+        private static readonly int[] expPerLevel = new int[] { 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000 };
+        private static readonly int[] expPerMasteryLevel = new int[] { 10000, 25000, 45000, 70000, 100000 };
 
         //Functions
         public static Rectangle GetExperienceBar(Vector2 barPosition, Vector2 barSize, int actualExp, int level, int maxPossibleLevel, int scale, bool isMastery)
@@ -22,7 +22,7 @@ namespace AbilitiesExperienceBars
             else
                 percentage = ((float)actualExp - (float)levelRange[level - 1]) / ((float)levelRange[level] - (float)levelRange[level - 1]) * barSize.X;
 
-            Rectangle barRect = new Rectangle((int)barPosition.X, (int)barPosition.Y, (int)percentage * scale, (int)barSize.Y * scale);
+            Rectangle barRect = new((int)barPosition.X, (int)barPosition.Y, (int)percentage * scale, (int)barSize.Y * scale);
             return barRect;
         }
         public static string GetExperienceText(int actualExp, int level, int maxPossibleLevel, bool isMastery)
