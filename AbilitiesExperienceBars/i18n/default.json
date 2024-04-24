@@ -2,6 +2,8 @@
   "LevelUpMessage": "Level Up!",
   "Theme": "UI Theme",
   "ThemeT": "Select the UI Theme for the displays",
+  "BlackList": "Skill Blacklist",
+  "BlackListT": "Prevent these custom Skill IDs from displaying" ,
   "SmallIcon": "Small Skill Icons",
   "SmallIconT": "Show smaller skill icons instead of the larger ones",
   "ToggleKey": "Toggle",

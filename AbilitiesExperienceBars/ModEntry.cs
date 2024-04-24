@@ -36,8 +36,6 @@ namespace AbilitiesExperienceBars
 
         // Screen Alignment Variables
         private readonly int barSpacement = 8;
-        readonly int[] expTextOffeset = new int[6] { 0, 19, 21, 22, 22, 22 };
-        readonly int[] levelPosition = new int[11] { 29, 28, 29, 29, 29, 29, 29, 28, 28, 28, 31 };
 
         // Color Variables
         private Color globalChangeColor = Color.White;
@@ -48,17 +46,17 @@ namespace AbilitiesExperienceBars
         public string animBoxDir, animLevelUpDir;
 
         // Control Variables
+        private bool loadedSaveFlag;
         private bool canShowLevelUp;
         private bool canCountTimer;
         private bool canCountPopupTimer;
+        private SkillEntry popupSkill;
+        private bool sampleRunOnce;
+        private bool masteryProcessed;
 
         // Data Variables
         public ModEntry instance;
         private ModConfig config;
-
-        // Mastery Variables
-        private readonly List<string> masterySkills = new() { "farming", "fishing", "foraging", "mining", "combat" };
-        private bool masteryProcessed;
 
         // Timer Variables
         private float timeLeft;
@@ -70,12 +68,16 @@ namespace AbilitiesExperienceBars
         private string levelUpMessage;
         private readonly string levelUpID = "abilitybars.LevelUp";
 
-        // Experience Popup
-        private SkillEntry popupSkill;
-        private bool sampleRunOnce;
+        // SpaceCore API
+        ISpaceCoreApi spaceCoreAPI;
 
-        // Load Control
-        private bool loadedSaveFlag;
+        // Skill Blacklist, Special Handling
+        private List<string> BlackList = new()
+        {
+            "DestyNova.SwordAndSorcery.Rogue",
+            "DestyNova.SwordAndSorcery.Bardics",
+            "DestyNova.SwordAndSorcery.Druidics"
+        };
 
         #endregion
 
@@ -430,6 +432,8 @@ namespace AbilitiesExperienceBars
             if (this.config.PopupMessageDuration < 1)
                 this.config.PopupMessageDuration = 1;
 
+            this.config.UITheme ??= "DestyNova.SwordAndSorcery.Bardics;DestyNova.SwordAndSorcery.Rogue;";
+
             // Default UI theme catch
             this.config.UITheme ??= "Vanilla";
 
@@ -477,7 +481,7 @@ namespace AbilitiesExperienceBars
             bool levelExtended = false;
             if (this.Helper.ModRegistry.IsLoaded("GoldstoneBosonMeadows.LevelForever"))
                 levelExtended = true;
-            var spaceCoreAPI = Helper.ModRegistry.GetApi<ISpaceCoreApi>("spacechase0.SpaceCore");
+            spaceCoreAPI = Helper.ModRegistry.GetApi<ISpaceCoreApi>("spacechase0.SpaceCore");
 
             // Add Base Skills
             playerSkills.Add(new SkillEntry(spaceCoreAPI, "farming", 1, iconSheet, new Color(115, 150, 56), levelExtended));
@@ -506,10 +510,31 @@ namespace AbilitiesExperienceBars
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
                 playerSkills.Add(new SkillEntry(spaceCoreAPI, "magic", 14, iconSheet, new Color(0, 66, 255), levelExtended));
 
+            // Sword and Sorcery
+            SpecialSkillCheck();
+
             // Add custom skills not accounted for
-            if (spaceCoreAPI != null ) 
+            if (spaceCoreAPI != null) 
                 foreach (string skillID in spaceCoreAPI.GetCustomSkills())
-                    playerSkills.Add(new SkillEntry(spaceCoreAPI, skillID, -1, null, new Color(210, 210, 210), levelExtended));
+                    if (!HasSkill(skillID) && !BlackList.Contains(skillID))
+                        playerSkills.Add(new SkillEntry(spaceCoreAPI, skillID, -1, null, new Color(210, 210, 210), levelExtended));
+        }
+
+        private void SpecialSkillCheck()
+        {
+            if (spaceCoreAPI is null) return;
+
+            if (this.Helper.ModRegistry.IsLoaded("KCC.SnS"))
+            {
+                if (!HasSkill("DestyNova.SwordAndSorcery.Rogue") && Game1.player.eventsSeen.Contains("SnS.Ch1.Mateo.18"))
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Rogue", 18, iconSheet, new Color(252, 121, 27), false));
+
+                if (!HasSkill("DestyNova.SwordAndSorcery.Bardics") && Game1.player.eventsSeen.Contains("SnS.Ch2.Hector.16"))
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Bardics", 16, iconSheet, new Color(85, 33, 145), false));
+
+                if (!HasSkill("DestyNova.SwordAndSorcery.Druidics") && Game1.player.eventsSeen.Contains("SnS.Ch2.Hector.16"))
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Druidics", 17, iconSheet, new Color(48, 162, 218), false));
+            }
         }
 
         #endregion
@@ -533,6 +558,9 @@ namespace AbilitiesExperienceBars
 
                 loadedSaveFlag = true;
             }
+
+            // Check to see if Custom skills should be added
+            SpecialSkillCheck();
 
             // Check for player mastery
             if (!masteryProcessed && playerSkills.Where(x => x.isMastered).Count() == 5)
@@ -732,6 +760,11 @@ namespace AbilitiesExperienceBars
                 animDestPosLevelUp = new Vector2(0, 0 - (backgroundLevelUp.Height * 3) - 5);
                 animatingLevelUp = true;
             }
+        }
+
+        private bool HasSkill(string SkillID)
+        {
+            return playerSkills.Any(x => x.skillID == SkillID);
         }
 
         #endregion
