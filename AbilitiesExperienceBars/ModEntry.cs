@@ -22,6 +22,7 @@ namespace AbilitiesExperienceBars
         // Private Variables
         private int levelUpPosY;
         private int expAdvicePositionX;
+        private int expAdvicePopupPositionX;
 
         // Sprite Variables
         private Texture2D iconSheet, barSheet, barFiller;
@@ -162,6 +163,13 @@ namespace AbilitiesExperienceBars
                     getValue: () => config.ShowExperienceInfo,
                     setValue: value => config.ShowExperienceInfo = value
                 );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowExperienceGains"),
+                    tooltip: () => Helper.Translation.Get("ShowExperienceGainsT"),
+                    getValue: () => config.ShowExperienceGain,
+                    setValue: value => config.ShowExperienceGain = value
+                );
                 configMenu.AddNumberOption(
                     mod: ModManifest,
                     name: () => Helper.Translation.Get("mainPosX"),
@@ -205,6 +213,13 @@ namespace AbilitiesExperienceBars
                     tooltip: () => Helper.Translation.Get("ShowExperienceInfoT"),
                     getValue: () => config.ShowExperiencePopupInfo,
                     setValue: value => config.ShowExperiencePopupInfo = value
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ShowExperienceGains"),
+                    tooltip: () => Helper.Translation.Get("ShowExperienceGainsT"),
+                    getValue: () => config.ShowExperiencePopupGain,
+                    setValue: value => config.ShowExperiencePopupGain = value
                 );
                 configMenu.AddNumberOption(
                     mod: ModManifest,
@@ -303,7 +318,7 @@ namespace AbilitiesExperienceBars
                     Color.Black);
             }
 
-            if (!Context.IsWorldReady || Game1.CurrentEvent != null) return;
+            if (!Context.IsWorldReady || Game1.CurrentEvent != null || Game1.game1.takingMapScreenshot) return;
 
             // Test Experience Popup
             if (this.config.ShowExpPopupTest)
@@ -321,7 +336,7 @@ namespace AbilitiesExperienceBars
 
             // Experience Popup
             if (canCountPopupTimer && popupSkill != null && this.config.ShowExpPopup && popupSkill.currentLevel < popupSkill.maxLevel)
-                ExperienceBar(popupSkill, e.SpriteBatch, this.config.popupPosX, this.config.popupPosY);
+                ExperienceBar(popupSkill, e.SpriteBatch, this.config.popupPosX, config.popupPosY, this.config.popupScale, this.config.ShowExperiencePopupInfo, this.config.ShowExperiencePopupGain, true);
 
             if (!this.config.ShowUI) return;
 
@@ -349,7 +364,7 @@ namespace AbilitiesExperienceBars
             int barPosY = this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + (barSpacement / 2);
             foreach (SkillEntry se in playerSkills)
             {
-                ExperienceBar(se, e.SpriteBatch, barPosX, barPosY);
+                ExperienceBar(se, e.SpriteBatch, barPosX, barPosY, this.config.mainScale, this.config.ShowExperienceInfo, this.config.ShowExperienceGain, false);
                 barPosY += barSpacement + (backgroundBar.Height * this.config.mainScale);
             }
         }
@@ -431,8 +446,6 @@ namespace AbilitiesExperienceBars
             // Popup message duration catch
             if (this.config.PopupMessageDuration < 1)
                 this.config.PopupMessageDuration = 1;
-
-            this.config.UITheme ??= "DestyNova.SwordAndSorcery.Bardics;DestyNova.SwordAndSorcery.Rogue;";
 
             // Default UI theme catch
             this.config.UITheme ??= "Vanilla";
@@ -771,23 +784,23 @@ namespace AbilitiesExperienceBars
 
         #region // UI Functions
 
-        private void ExperienceBar(SkillEntry se, SpriteBatch b, int barPosX, int barPosY)
+        private void ExperienceBar(SkillEntry se, SpriteBatch b, int barPosX, int barPosY, int scale, bool expInfo, bool expGains, bool popup)
         {
             //Draw bars background
             b.Draw(barSheet,
-                new Rectangle(barPosX, barPosY, backgroundBar.Width * this.config.mainScale, backgroundBar.Height * this.config.mainScale),
+                new Rectangle(barPosX, barPosY, backgroundBar.Width * scale, backgroundBar.Height * scale),
                 backgroundBar,
                 globalChangeColor);
 
             // Draw icons
             if (config.SmallIcons)
                 b.Draw(se.smallIcon,
-                    new Rectangle(barPosX + (6 * this.config.mainScale), barPosY + (6 * this.config.mainScale), 10 * this.config.mainScale, 10 * this.config.mainScale),
+                    new Rectangle(barPosX + (6 * scale), barPosY + (6 * scale), 10 * scale, 10 * scale),
                     se.smallIconRectangle,
                     globalChangeColor);
             else
                 b.Draw(se.bigIcon,
-                    new Rectangle(barPosX + (3 * this.config.mainScale), barPosY + (3 * this.config.mainScale), 16 * this.config.mainScale, 16 * this.config.mainScale),
+                    new Rectangle(barPosX + (3 * scale), barPosY + (3 * scale), 16 * scale, 16 * scale),
                     se.bigIconRectangle,
                     globalChangeColor);
 
@@ -795,58 +808,60 @@ namespace AbilitiesExperienceBars
             DrawLevel(b,
                 se.currentLevel,
                 se.maxLevel,
-                barPosX + ((se.currentLevel > 9 && se.currentLevel != se.maxLevel ? 25 : 24) * this.config.mainScale),
-                barPosY + ((se.currentLevel > 9 && se.currentLevel != se.maxLevel ? 11 : 7) * this.config.mainScale),
+                barPosX + ((se.currentLevel > 9 && se.currentLevel != se.maxLevel ? 25 : 24) * scale),
+                barPosY + ((se.currentLevel > 9 && se.currentLevel != se.maxLevel ? 11 : 7) * scale),
                 globalChangeColor,
-                se.LevelTextScale(this.config.mainScale));
+                se.LevelTextScale(scale),
+                scale);
 
             // Draw Experience Bars
             Color barColor = se.currentLevel >= se.maxLevel ? se.skillFinalColor : se.skillColor;
             b.Draw(barFiller,
-                se.GetExperienceBar(new Vector2(barPosX + (37 * this.config.mainScale), barPosY + (6 * this.config.mainScale)),
+                se.GetExperienceBar(new Vector2(barPosX + (37 * scale), barPosY + (6 * scale)),
                     new Vector2(58, barFiller.Height),
-                    this.config.mainScale),
+                    scale),
                 barColor);
 
             // Draw Experience Text
-            if (this.config.ShowExperienceInfo)
+            if (expInfo)
             {
                 byte alpha = se.currentLevel < se.maxLevel ? se.skillColor.A : se.skillFinalColor.A;
                 Color actualColor = se.currentLevel < se.maxLevel ? se.skillColor : se.skillFinalColor;
 
                 // Add to the X based on scale
                 int expAddX = 6;
-                if (this.config.mainScale == 2) expAddX = 5;
-                else if (this.config.mainScale == 1) expAddX = 4;
+                if (scale == 2) expAddX = 5;
+                else if (scale == 1) expAddX = 4;
 
                 b.DrawString(Game1.dialogueFont,
-                    se.GetExperienceText(this.config.mainScale),
-                    new Vector2(barPosX + (37 * this.config.mainScale), barPosY + (expAddX * this.config.mainScale)),
+                    se.GetExperienceText(scale),
+                    new Vector2(barPosX + (37 * scale), barPosY + (expAddX * scale)),
                     MyHelper.ChangeColorIntensity(actualColor, 0.45f, alpha), 0f, Vector2.Zero,
-                    se.ExperienceTextScale(this.config.mainScale), SpriteEffects.None, 1);
+                    se.ExperienceTextScale(scale), SpriteEffects.None, 1);
             }
 
             // Gained Experience Window
-            if (se.actualExpGainedMessage && this.config.ShowExperienceInfo)
+            if (se.actualExpGainedMessage && expGains)
             {
+                int gainBarX = popup ? barPosX + expAdvicePopupPositionX : barPosX + expAdvicePositionX;
                 b.Draw(barSheet,
-                    new Rectangle(barPosX + expAdvicePositionX,
-                        barPosY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2),
-                        backgroundExp.Width * this.config.mainScale,
-                        backgroundExp.Height * this.config.mainScale),
+                    new Rectangle(gainBarX,
+                        barPosY + ((backgroundBar.Height * scale) / 2) - ((backgroundExp.Height * scale) / 2),
+                        backgroundExp.Width * scale,
+                        backgroundExp.Height * scale),
                     backgroundExp,
                     MyHelper.ChangeColorIntensity(globalChangeColor, 1, se.expAlpha));
 
                 Vector2 centralizedStringPos = MyHelper.GetStringCenter(se.expGained.ToString(), Game1.dialogueFont);
                 b.DrawString(Game1.dialogueFont,
                     $"+{se.expGained}",
-                    new Vector2(barPosX + expAdvicePositionX + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X,
-                        barPosY + (6 * this.config.mainScale)),
+                    new Vector2(gainBarX + ((backgroundExp.Width * scale) / 2) - centralizedStringPos.X, barPosY + (6 * scale)),
                     MyHelper.ChangeColorIntensity(se.skillRestorationColor, 0.45f, se.expAlpha),
                     0f,
                     Vector2.Zero,
-                    se.ExperienceTextScale(this.config.mainScale),
-                    SpriteEffects.None, 1);
+                    se.ExperienceTextScale(scale),
+                    SpriteEffects.None, 
+                    1);
             }
         }
 
@@ -856,11 +871,11 @@ namespace AbilitiesExperienceBars
             ConfigSave();
         }
 
-        public void DrawLevel(SpriteBatch b, int level, int maxLevel, int x, int y, Color c, float scale)
+        public void DrawLevel(SpriteBatch b, int level, int maxLevel, int x, int y, Color c, float scale, int barScale)
         {
             // Max Level, show a star
             if (level == maxLevel)
-                b.Draw(Game1.mouseCursors, new Rectangle(x, y, 8 * this.config.mainScale, 8 * this.config.mainScale), new Rectangle(346, 392, 8, 8), c);
+                b.Draw(Game1.mouseCursors, new Rectangle(x, y, 8 * barScale, 8 * barScale), new Rectangle(346, 392, 8, 8), c);
 
             // Level 10 - 99
             else if (level >= 10)
@@ -877,7 +892,7 @@ namespace AbilitiesExperienceBars
 
                 // Draw Numbers
                 b.Draw(Game1.mouseCursors, new Vector2(x, y), new Rectangle(imageX1, imageY1, 8, 8), c, 0f, new Vector2(4f, 4f), 4f * scale, SpriteEffects.None, 0);
-                b.Draw(Game1.mouseCursors, new Vector2(x + (6 * this.config.mainScale), y), new Rectangle(imageX2, imageY2, 8, 8), c, 0f, new Vector2(4f, 4f), 4f * scale, SpriteEffects.None, 0);
+                b.Draw(Game1.mouseCursors, new Vector2(x + (6 * barScale), y), new Rectangle(imageX2, imageY2, 8, 8), c, 0f, new Vector2(4f, 4f), 4f * scale, SpriteEffects.None, 0);
             }
 
             // Level 0 - 9
@@ -886,7 +901,7 @@ namespace AbilitiesExperienceBars
                 // Single Digit Number
                 int imageX = level <= 5 ? 512 + level * 8 : 512 + (level - 6) * 8;
                 int imageY = level <= 5 ? 128 : 136;
-                b.Draw(Game1.mouseCursors, new Rectangle(x, y, 8 * this.config.mainScale, 8 * this.config.mainScale), new Rectangle(imageX, imageY, 8, 8), c);
+                b.Draw(Game1.mouseCursors, new Rectangle(x, y, 8 * barScale, 8 * barScale), new Rectangle(imageX, imageY, 8, 8), c);
             }
         }
 
@@ -894,11 +909,19 @@ namespace AbilitiesExperienceBars
         {
             if (!Context.IsWorldReady) return;
 
+            // Main Gain Adjustment
             int rightPosX = this.config.mainPosX + backgroundTop.Width * this.config.mainScale;
             if (rightPosX >= Game1.uiViewport.Width - (backgroundExp.Width * this.config.mainScale))
                 expAdvicePositionX = -(backgroundExp.Width * this.config.mainScale + (10 * this.config.mainScale));
             else
                 expAdvicePositionX = (backgroundTop.Width * this.config.mainScale) + 1;
+
+            // Popup Gain Adjustment
+            rightPosX = this.config.popupPosX + backgroundBar.Width * this.config.popupScale;
+            if (rightPosX >= Game1.uiViewport.Width - (backgroundBar.Width * this.config.popupScale))
+                expAdvicePopupPositionX = -(backgroundExp.Width * this.config.popupScale + (10 * this.config.popupScale));
+            else
+                expAdvicePopupPositionX = (backgroundBar.Width * this.config.popupScale) + 1;
         }
 
         public Vector2 Animate(Vector2 boxPos, Vector2 dirTo, float velocity, string dirName)

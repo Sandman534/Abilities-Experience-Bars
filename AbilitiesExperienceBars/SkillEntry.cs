@@ -95,7 +95,7 @@ namespace AbilitiesExperienceBars
 
         public void SetSkillData(bool current)
         {
-            // Stardew Base Skills
+            // Stardew Valley Skills
             if (skillID == "farming")
                 SetData(Game1.player.farmingLevel.Value, Game1.player.experiencePoints[0], current);
             else if (skillID == "fishing")
@@ -110,14 +110,12 @@ namespace AbilitiesExperienceBars
                 SetData(Game1.player.luckLevel.Value, Game1.player.experiencePoints[5], current);
             else if (skillID == "mastery")
                 SetData((int)Game1.stats.Get("masteryLevelsSpent"), (int)Game1.stats.Get("MasteryExp"), current);
+            else if (_spaceCoreAPI != null)
+                SetData(_spaceCoreAPI.GetLevelForCustomSkill(Game1.player, skillID), _spaceCoreAPI.GetExperienceForCustomSkill(Game1.player, skillID), current);
 
             // Check if a basic skill has reached level 10 for mastery
             if (current && isBasic && !isMastered && currentLevel == 10)
                 isMastered = true;
-
-            // Mod Added Skills
-            else if (_spaceCoreAPI != null)
-                SetData(_spaceCoreAPI.GetLevelForCustomSkill(Game1.player, skillID), _spaceCoreAPI.GetExperienceForCustomSkill(Game1.player, skillID), current);
         }
 
         public Rectangle GetExperienceBar(Vector2 barPosition, Vector2 barSize, int scale)
