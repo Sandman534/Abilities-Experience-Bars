@@ -1,9 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics.PackedVector;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,14 +20,11 @@ namespace AbilitiesExperienceBars
         private List<SkillEntry> playerSkills = new();
 
         // Private Variables
-        private int configButtonPosX = 25, configButtonPosY = 10;
-        private readonly int defaultButtonPosX = 25, defaultButtonPosY = 10;
         private int levelUpPosY;
-        private bool inConfigMode;
         private int expAdvicePositionX;
 
         // Sprite Variables
-        private Texture2D iconSheet, barSheet, barFiller, backgroundConfig;
+        private Texture2D iconSheet, barSheet, barFiller;
 
         // Sprite Locations
         private Rectangle backgroundTop = new(98, 0, 116, 5);
@@ -34,33 +33,14 @@ namespace AbilitiesExperienceBars
         private Rectangle backgroundBar = new(0, 0, 98, 22);
         private Rectangle backgroundLevelUp = new(0, 22, 86, 37);
         private Rectangle backgroundExp = new(0, 59, 34, 17);
-        private Rectangle buttonConfig = new(98, 11, 18, 18);
-        private Rectangle buttonConfigApply = new(116, 11, 18, 18);
-        private Rectangle buttonVisibility = new(98, 29, 18, 18);
-        private Rectangle buttonHidden = new(116, 29, 18, 18);
-        private Rectangle buttonBackground = new(134, 11, 7, 8);
-        private Rectangle buttonLevel = new(141, 11, 7, 8);
-        private Rectangle buttonExperience = new(148, 11, 7, 8);
-        private Rectangle buttonIncrease = new(134, 19, 7, 8);
-        private Rectangle buttonDecrease = new(141, 19, 7, 8);
-        private Rectangle buttonReset = new(155, 11, 13, 13);
 
-        // EXP and Level Text
+        // Screen Alignment Variables
+        private readonly int barSpacement = 8;
         readonly int[] expTextOffeset = new int[6] { 0, 19, 21, 22, 22, 22 };
         readonly int[] levelPosition = new int[11] { 29, 28, 29, 29, 29, 29, 29, 28, 28, 28, 31 };
 
         // Color Variables
         private Color globalChangeColor = Color.White;
-        private Color decreaseSizeButtonColor = Color.White,
-            increaseSizeButtonColor = Color.White,
-            backgroundButtonColor = Color.White,
-            levelUpButtonColor = Color.White,
-            experienceButtonColor = Color.White;
-
-        // Global Info Variables
-        private readonly int barSpacement = 10;
-        public bool luckCompatibility, cookingCompatibility, magicCompatibility, loveCookingCompatibility,
-            luckCheck, cookingCheck, magicCheck, loveCookingCheck;
 
         // Animation Variables
         public bool animatingBox, animatingLevelUp;
@@ -68,7 +48,6 @@ namespace AbilitiesExperienceBars
         public string animBoxDir, animLevelUpDir;
 
         // Control Variables
-        private bool draggingBox;
         private bool canShowLevelUp;
         private bool canCountTimer;
         private bool canCountPopupTimer;
@@ -86,7 +65,8 @@ namespace AbilitiesExperienceBars
         private float timeLeftPopup;
 
         // Level Up Variables
-        private Rectangle levelUpSource;
+        private Texture2D levelUpIcon;
+        private Rectangle levelUpRectangle;
         private string levelUpMessage;
         private readonly string levelUpID = "abilitybars.LevelUp";
 
@@ -96,10 +76,6 @@ namespace AbilitiesExperienceBars
 
         // Load Control
         private bool loadedSaveFlag;
-
-        // Mouse Check Control
-        private readonly int[] mainX = new int[5] { 0, 25, 75, 100, 125 };
-        private readonly int[] mainY = new int[2] { 0, -30 };
 
         #endregion
 
@@ -112,11 +88,9 @@ namespace AbilitiesExperienceBars
 
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
             helper.Events.Display.RenderedHud += onRenderedHud;
-            helper.Events.GameLoop.UpdateTicked += onUpdate;
             helper.Events.Input.ButtonPressed += onButtonPressed;
-            helper.Events.Input.ButtonReleased += onButtonReleased;
+            helper.Events.GameLoop.UpdateTicked += onUpdate;
             helper.Events.GameLoop.SaveLoaded += onSaveLoaded;
-            helper.Events.Player.Warped += onPlayerWarped;
         }
 
         #region // Events
@@ -153,33 +127,6 @@ namespace AbilitiesExperienceBars
                     setValue: value => config.SmallIcons = value
                 );
 
-                // Keybinds
-                configMenu.AddSectionTitle(
-                    mod: ModManifest,
-                    text: () => Helper.Translation.Get("KeybindsM")
-                );
-                configMenu.AddKeybind(
-                    mod: ModManifest,
-                    name: () => Helper.Translation.Get("ToggleKey"),
-                    tooltip: () => Helper.Translation.Get("ToggleKeyT"),
-                    getValue: () => config.ToggleKey,
-                    setValue: value => config.ToggleKey = value
-                );
-                configMenu.AddKeybind(
-                    mod: ModManifest,
-                    name: () => Helper.Translation.Get("ConfigKey"),
-                    tooltip: () => Helper.Translation.Get("ConfigKeyT"),
-                    getValue: () => config.ConfigKey,
-                    setValue: value => config.ConfigKey = value
-                );
-                configMenu.AddKeybind(
-                    mod: ModManifest,
-                    name: () => Helper.Translation.Get("ResetKey"),
-                    tooltip: () => Helper.Translation.Get("ResetKeyT"),
-                    getValue: () => config.ResetKey,
-                    setValue: value => config.ResetKey = value
-                );
-
                 // Interface
                 configMenu.AddSectionTitle(
                     mod: ModManifest,
@@ -187,17 +134,17 @@ namespace AbilitiesExperienceBars
                 );
                 configMenu.AddBoolOption(
                     mod: ModManifest,
-                    name: () => Helper.Translation.Get("ShowButtons"),
-                    tooltip: () => Helper.Translation.Get("ShowButtonsT"),
-                    getValue: () => config.ShowButtons,
-                    setValue: value => config.ShowButtons = value
-                );
-                configMenu.AddBoolOption(
-                    mod: ModManifest,
                     name: () => Helper.Translation.Get("ShowUI"),
                     tooltip: () => Helper.Translation.Get("ShowUIT"),
                     getValue: () => config.ShowUI,
                     setValue: value => config.ShowUI = value
+                );
+                configMenu.AddKeybind(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("ToggleKey"),
+                    tooltip: () => Helper.Translation.Get("ToggleKeyT"),
+                    getValue: () => config.ToggleKey,
+                    setValue: value => config.ToggleKey = value
                 );
                 configMenu.AddBoolOption(
                     mod: ModManifest,
@@ -336,14 +283,14 @@ namespace AbilitiesExperienceBars
                     Color.White);
 
                 if (config.SmallIcons)
-                    e.SpriteBatch.Draw(iconSheet,
+                    e.SpriteBatch.Draw(levelUpIcon,
                         new Rectangle(((Game1.uiViewport.Width / 2) - (10 * 3) / 2), levelUpPosY + 15, 10 * 3, 10 * 3),
-                        levelUpSource,
+                        levelUpRectangle,
                         Color.White);
                 else
-                    e.SpriteBatch.Draw(iconSheet,
+                    e.SpriteBatch.Draw(levelUpIcon,
                         new Rectangle(((Game1.uiViewport.Width / 2) - (16 * 3) / 2), levelUpPosY + 9, 16 * 3, 16 * 3),
-                        levelUpSource,
+                        levelUpRectangle,
                         Color.White);
 
 
@@ -372,176 +319,11 @@ namespace AbilitiesExperienceBars
 
             // Experience Popup
             if (canCountPopupTimer && popupSkill != null && this.config.ShowExpPopup && popupSkill.currentLevel < popupSkill.maxLevel)
-            {
-
-                // Bar position
-                int barPosX = this.config.popupPosX;
-                int barPosY = this.config.popupPosY;
-
-                // Draw bars background
-                e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(barPosX, barPosY, backgroundBar.Width * this.config.popupScale, backgroundBar.Height * this.config.popupScale),
-                    backgroundBar,
-                    globalChangeColor);
-
-
-                // Draw icons
-                if (config.SmallIcons)
-                    e.SpriteBatch.Draw(iconSheet,
-                        new Rectangle(barPosX + (((22 * this.config.popupScale) / 2) - ((10 * this.config.popupScale) / 2)),
-                            barPosY + (((22 * this.config.popupScale) / 2) - (5 * this.config.popupScale)),
-                            10 * this.config.popupScale,
-                            10 * this.config.popupScale),
-                        popupSkill.smallIcon,
-                        globalChangeColor);
-                else
-                    e.SpriteBatch.Draw(iconSheet,
-                        new Rectangle(barPosX + (((22 * this.config.popupScale) / 2) - ((16 * this.config.popupScale) / 2)),
-                            barPosY + (((22 * this.config.popupScale) / 2) - (8 * this.config.popupScale)),
-                            16 * this.config.popupScale,
-                            16 * this.config.popupScale),
-                        popupSkill.bigIcon,
-                        globalChangeColor);
-
-                // Draw level text
-                int posNumber = popupSkill.currentLevel <= 10 ? levelPosition[popupSkill.currentLevel] : 33;
-                NumberSprite.draw(popupSkill.currentLevel,
-                    e.SpriteBatch,
-                    new Vector2(barPosX + (posNumber * this.config.popupScale), barPosY + (11 * this.config.popupScale)),
-                    globalChangeColor,
-                    BarController.AdjustLevelScale(this.config.popupScale, popupSkill.currentLevel, popupSkill.maxLevel),
-                    0, 1, 0);
-
-                // Draw Experience Bars
-                Color barColor;
-                if (popupSkill.currentLevel >= popupSkill.maxLevel) barColor = popupSkill.skillFinalColor;
-                else barColor = popupSkill.skillColor;
-
-                e.SpriteBatch.Draw(barFiller,
-                    BarController.GetExperienceBar(new Vector2(barPosX + (37 * this.config.popupScale),
-                        barPosY + ((22 * this.config.popupScale) / 2) - ((barFiller.Height * this.config.popupScale) / 2)),
-                        new Vector2(58, barFiller.Height),
-                        popupSkill.currentEXP,
-                        popupSkill.currentLevel,
-                        popupSkill.maxLevel,
-                        this.config.popupScale,
-                        popupSkill.isMastery),
-                    barColor);
-
-                // Draw Experience Text
-                if (this.config.ShowExperiencePopupInfo)
-                {
-                    byte alpha;
-                    Color actualColor;
-                    if (popupSkill.currentLevel < popupSkill.maxLevel)
-                    {
-                        actualColor = popupSkill.skillColor;
-                        alpha = popupSkill.skillColor.A;
-                    }
-                    else
-                    {
-                        actualColor = popupSkill.skillFinalColor;
-                        alpha = popupSkill.skillFinalColor.A;
-                    }
-                    e.SpriteBatch.DrawString(Game1.dialogueFont,
-                        BarController.GetExperienceText(popupSkill.currentEXP, popupSkill.currentLevel, popupSkill.maxLevel, popupSkill.isMastery),
-                        new Vector2(barPosX + (42 * this.config.popupScale),
-                            barPosY + ((expTextOffeset[this.config.popupScale] * this.config.popupScale) / 2) - ((barFiller.Height * this.config.popupScale) / 2)),
-                        MyHelper.ChangeColorIntensity(actualColor, 0.45f, alpha), 0f, Vector2.Zero,
-                        BarController.AdjustExperienceScale(this.config.popupScale), SpriteEffects.None, 1);
-                }
-            }
-
-            // In-Config background
-            if (inConfigMode)
-                e.SpriteBatch.Draw(backgroundConfig,
-                    new Rectangle(0, 0, Game1.uiViewport.Width, Game1.uiViewport.Height),
-                    new Color(0, 0, 0, 0.50f));
-
-            if (this.config.ShowButtons)
-            {
-                if (inConfigMode)
-                {
-                    e.SpriteBatch.Draw(barSheet,
-                        new Rectangle(configButtonPosX, configButtonPosY, buttonConfig.Width * 3, buttonConfig.Height * 3),
-                        buttonConfigApply,
-                        Color.White);
-                    e.SpriteBatch.Draw(barSheet,
-                        new Rectangle(configButtonPosX + 75, configButtonPosY, buttonReset.Width * 3, buttonReset.Height * 3),
-                        buttonReset,
-                        Color.White);
-                }
-                else
-                    e.SpriteBatch.Draw(barSheet,
-                        new Rectangle(configButtonPosX, configButtonPosY, buttonConfig.Width * 3, buttonConfig.Height * 3),
-                        buttonConfig,
-                        Color.White);
-            }
-            else
-            {
-                if (inConfigMode)
-                {
-                    e.SpriteBatch.Draw(barSheet,
-                        new Rectangle(configButtonPosX, configButtonPosY, buttonConfig.Width * 3, buttonConfig.Height * 3),
-                        buttonConfigApply,
-                        Color.White);
-                    e.SpriteBatch.Draw(barSheet,
-                        new Rectangle(configButtonPosX + 75, configButtonPosY, buttonReset.Width * 3, buttonReset.Height * 3),
-                        buttonReset,
-                        Color.White);
-                }
-            }
-
-            // Draw config button
-            if (this.config.ShowButtons)
-            {
-                if (!inConfigMode)
-                {
-                    if (!this.config.ShowUI)
-                        e.SpriteBatch.Draw(barSheet,
-                            new Rectangle(configButtonPosX + 75, configButtonPosY, buttonConfig.Width * 3, buttonConfig.Height * 3),
-                            buttonHidden,
-                            Color.White);
-                    else
-                        e.SpriteBatch.Draw(barSheet,
-                            new Rectangle(configButtonPosX + 75, configButtonPosY, buttonConfig.Width * 3, buttonConfig.Height * 3),
-                            buttonVisibility,
-                            Color.White);
-                }
-            }
+                ExperienceBar(popupSkill, e.SpriteBatch, this.config.popupPosX, this.config.popupPosY);
 
             if (!this.config.ShowUI) return;
 
-            // Draw adjust buttons
-            if (inConfigMode)
-            {
-                e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(this.config.mainPosX, this.config.mainPosY - 30, buttonDecrease.Width * 3, buttonDecrease.Height * 3),
-                    buttonDecrease,
-                    decreaseSizeButtonColor);
-
-                e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(this.config.mainPosX + 25, this.config.mainPosY - 30, buttonIncrease.Width * 3, buttonIncrease.Height * 3),
-                    buttonIncrease,
-                    increaseSizeButtonColor);
-
-                e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(this.config.mainPosX + 75, this.config.mainPosY - 30, buttonBackground.Width * 3, buttonBackground.Height * 3),
-                    buttonBackground,
-                    backgroundButtonColor);
-
-                e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(this.config.mainPosX + 100, this.config.mainPosY - 30, buttonLevel.Width * 3, buttonLevel.Height * 3),
-                    buttonLevel,
-                    levelUpButtonColor);
-
-                e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(this.config.mainPosX + 125, this.config.mainPosY - 30, buttonExperience.Width * 3, buttonExperience.Height * 3),
-                    buttonExperience,
-                    experienceButtonColor);
-            }
-
-            // Draw Background
+            // Draw Experience Window Background
             if (this.config.ShowBoxBackground)
             {
                 e.SpriteBatch.Draw(barSheet,
@@ -550,125 +332,30 @@ namespace AbilitiesExperienceBars
                     globalChangeColor);
 
                 e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale), backgroundTop.Width * this.config.mainScale, BarController.AdjustBackgroundSize(playerSkills.Count, backgroundBar.Height * this.config.mainScale, barSpacement)),
+                    new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale), backgroundTop.Width * this.config.mainScale, AdjustBackgroundSize(playerSkills.Count, backgroundBar.Height * this.config.mainScale, barSpacement)),
                     backgroundMiddle,
                     globalChangeColor);
 
                 e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + BarController.AdjustBackgroundSize(playerSkills.Count, backgroundBar.Height * this.config.mainScale, barSpacement), backgroundTop.Width * this.config.mainScale, backgroundTop.Height * this.config.mainScale),
+                    new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + AdjustBackgroundSize(playerSkills.Count, backgroundBar.Height * this.config.mainScale, barSpacement), backgroundTop.Width * this.config.mainScale, backgroundTop.Height * this.config.mainScale),
                     backgroundBottom,
                     globalChangeColor);
             }
 
-            int posControlY = this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + (barSpacement / 2);
-
             // Draw Experience Bars
-            foreach (SkillEntry sh in playerSkills)
+            int barPosX = this.config.mainPosX + (((backgroundMiddle.Width / 2) * this.config.mainScale) - ((backgroundBar.Width / 2) * this.config.mainScale));
+            int barPosY = this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + (barSpacement / 2);
+            foreach (SkillEntry se in playerSkills)
             {
-                GetPlayerInformation();
-                int barPosX = this.config.mainPosX + (((backgroundMiddle.Width / 2) * this.config.mainScale) - ((backgroundBar.Width / 2) * this.config.mainScale));
-
-                //Draw bars background
-                e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(barPosX, posControlY, backgroundBar.Width * this.config.mainScale, backgroundBar.Height * this.config.mainScale),
-                    backgroundBar,
-                    globalChangeColor);
-
-
-                // Draw icons
-                if (config.SmallIcons)
-                    e.SpriteBatch.Draw(iconSheet,
-                        new Rectangle(barPosX + (((28 * this.config.mainScale) / 2) - ((16 * this.config.mainScale) / 2)),
-                            posControlY + (((22 * this.config.mainScale) / 2) - (5 * this.config.mainScale)),
-                            10 * this.config.mainScale,
-                            10 * this.config.mainScale),
-                        sh.smallIcon,
-                        globalChangeColor);
-                else
-                    e.SpriteBatch.Draw(iconSheet,
-                        new Rectangle(barPosX + (((22 * this.config.mainScale) / 2) - ((16 * this.config.mainScale) / 2)),
-                            posControlY + (((22 * this.config.mainScale) / 2) - (8 * this.config.mainScale)),
-                            16 * this.config.mainScale,
-                            16 * this.config.mainScale),
-                        sh.bigIcon,
-                        globalChangeColor);
-
-                // Draw level text
-                int posNumber = sh.currentLevel <= 10 ? levelPosition[sh.currentLevel] : 33;
-                NumberSprite.draw(sh.currentLevel,
-                    e.SpriteBatch,
-                    new Vector2(barPosX + (posNumber * this.config.mainScale), posControlY + (11 * this.config.mainScale)),
-                    globalChangeColor,
-                    BarController.AdjustLevelScale(this.config.mainScale, sh.currentLevel, sh.maxLevel),
-                    0, 1, 0);
-
-                // Draw Experience Bars
-                Color barColor;
-                if (draggingBox)
-                    if (sh.currentLevel >= sh.maxLevel) barColor = MyHelper.ChangeColorIntensity(sh.skillFinalColor, 0.35f, 1);
-                    else barColor = MyHelper.ChangeColorIntensity(sh.skillColor, 0.35f, 1);
-                else
-                    if (sh.currentLevel >= sh.maxLevel) barColor = sh.skillFinalColor;
-                else barColor = sh.skillColor;
-
-                e.SpriteBatch.Draw(barFiller,
-                    BarController.GetExperienceBar(new Vector2(barPosX + (37 * this.config.mainScale),
-                        posControlY + ((22 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)),
-                        new Vector2(58, barFiller.Height),
-                        sh.currentEXP,
-                        sh.currentLevel,
-                        sh.maxLevel,
-                        this.config.mainScale,
-                        sh.isMastery),
-                    barColor);
-
-                // Draw Experience Text
-                if (this.config.ShowExperienceInfo)
-                {
-                    byte alpha;
-                    Color actualColor;
-                    if (sh.currentLevel < sh.maxLevel)
-                    {
-                        actualColor = sh.skillColor;
-                        alpha = sh.skillColor.A;
-                    }
-                    else
-                    {
-                        actualColor = sh.skillFinalColor;
-                        alpha = sh.skillFinalColor.A;
-                    }
-
-                    e.SpriteBatch.DrawString(Game1.dialogueFont,
-                        BarController.GetExperienceText(sh.currentEXP, sh.currentLevel, sh.maxLevel, sh.isMastery),
-                        new Vector2(barPosX + (42 * this.config.mainScale),
-                        posControlY + ((expTextOffeset[this.config.mainScale] * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)),
-                        MyHelper.ChangeColorIntensity(actualColor, 0.45f, alpha), 0f, Vector2.Zero,
-                        BarController.AdjustExperienceScale(this.config.mainScale), SpriteEffects.None, 1);
-                }
-
-                if (sh.actualExpGainedMessage && this.config.ShowExperienceInfo)
-                {
-                    e.SpriteBatch.Draw(barSheet,
-                        new Rectangle(barPosX + expAdvicePositionX,
-                            posControlY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2),
-                            backgroundExp.Width * this.config.mainScale,
-                            backgroundExp.Height * this.config.mainScale),
-                        backgroundExp,
-                        MyHelper.ChangeColorIntensity(globalChangeColor, 1, sh.expAlpha));
-
-                    Vector2 centralizedStringPos = MyHelper.GetStringCenter(sh.expGained.ToString(), Game1.dialogueFont);
-                    e.SpriteBatch.DrawString(Game1.dialogueFont,
-                        $"+{sh.expGained}",
-                        new Vector2(barPosX + expAdvicePositionX + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X, posControlY + ((23 * this.config.mainScale) / 2) - ((barFiller.Height * this.config.mainScale) / 2)),
-                        MyHelper.ChangeColorIntensity(sh.skillRestorationColor, 0.45f, sh.expAlpha),
-                        0f,
-                        Vector2.Zero,
-                        BarController.AdjustExperienceScale(this.config.mainScale),
-                        SpriteEffects.None, 1);
-                }
-
-                posControlY += barSpacement + (backgroundBar.Height * this.config.mainScale);
+                ExperienceBar(se, e.SpriteBatch, barPosX, barPosY);
+                barPosY += barSpacement + (backgroundBar.Height * this.config.mainScale);
             }
+        }
+
+        private void onButtonPressed(object sender, ButtonPressedEventArgs e)
+        {
+            //Toggle UI - Button
+            if (e.Button == this.config.ToggleKey) ToggleUI();
         }
 
         private void onSaveLoaded(object sender, SaveLoadedEventArgs e)
@@ -678,9 +365,6 @@ namespace AbilitiesExperienceBars
 
             // Set Load Flag for later data
             loadedSaveFlag = false;
-
-            // Adjust width for Mine level    
-            configButtonPosX = MyHelper.AdjustPositionMineLevelWidth(configButtonPosX, Game1.player.currentLocation, defaultButtonPosX);
         }
 
         private void onUpdate(object sender, UpdateTickedEventArgs e)
@@ -705,182 +389,8 @@ namespace AbilitiesExperienceBars
             CheckLevelGain();
             LevelUpTimer();
 
-            // Player is dragging box
-            if (draggingBox)
-            {
-                this.config.mainPosX = Game1.getMousePosition(true).X - ((backgroundTop.Width * this.config.mainScale) / 2);
-                this.config.mainPosY = Game1.getMousePosition(true).Y - (BarController.AdjustBackgroundSize(playerSkills.Count, backgroundBar.Height * this.config.mainScale, barSpacement) / 2) - (backgroundTop.Height * this.config.mainScale);
-            }
-
             // Check position
-            CheckMousePosition();
             RepositionExpInfo();
-
-            // Special Case for the Club
-            if (Game1.currentLocation.Name == "Club")
-                configButtonPosY = 90;
-            else
-                configButtonPosY = defaultButtonPosY;
-        }
-
-        private void onButtonPressed(object sender, ButtonPressedEventArgs e)
-        {
-            if (!Context.IsWorldReady || Game1.CurrentEvent != null) return;
-
-            Vector2 mousePos;
-            mousePos.X = Game1.getMousePosition(true).X;
-            mousePos.Y = Game1.getMousePosition(true).Y;
-
-            //Reset button check click
-            if (e.Button == SButton.MouseLeft && ButtonCheck(mousePos, 2, 0, configButtonPosX, configButtonPosY, buttonReset.Width, buttonReset.Height, true))
-                ConfigReset();
-
-            // Reset Box Position - Button
-            if (e.Button == this.config.ResetKey && inConfigMode)
-                ConfigReset();
-
-            // Config button click check - Button
-            if (e.Button == this.config.ConfigKey)
-            {
-                if (!this.config.ShowUI)
-                    ToggleUI();
-
-                inConfigMode = !inConfigMode;
-            }
-
-            //Toggle UI - Button
-            if (e.Button == this.config.ToggleKey && !inConfigMode)
-                ToggleUI();
-
-            //Config Button and Toggle UI Check
-            if (this.config.ShowButtons)
-            {
-                if ((e.Button == SButton.MouseLeft || e.Button == this.config.ConfigKey) && ButtonCheck(mousePos, 0, 0, configButtonPosX, configButtonPosY, buttonConfig.Width, buttonConfig.Height))
-                {
-                    if (!this.config.ShowUI)
-                        ToggleUI();
-
-                    inConfigMode = !inConfigMode;
-                }
-
-                if (e.Button == SButton.MouseLeft && ButtonCheck(mousePos, 2, 0, configButtonPosX, configButtonPosY, buttonConfig.Width, buttonConfig.Height) && !inConfigMode)
-                    ToggleUI();
-            }
-            else if (inConfigMode)
-            {
-                if ((e.Button == SButton.MouseLeft || e.Button == this.config.ConfigKey) && ButtonCheck(mousePos, 0, 0, configButtonPosX, configButtonPosY, buttonConfig.Width, buttonConfig.Height))
-                {
-                    if (!this.config.ShowUI)
-                        ToggleUI();
-
-                    inConfigMode = !inConfigMode;
-                }
-            }
-
-            if (inConfigMode)
-            {
-                // Background Clicked
-                int totalBackgroundSize = BarController.AdjustBackgroundSize(playerSkills.Count, backgroundBar.Height * this.config.mainScale, barSpacement) + (backgroundTop.Height * this.config.mainScale) + (backgroundBottom.Height * this.config.mainScale);
-                if (e.Button == SButton.MouseLeft && ButtonCheck(mousePos, 0, 0, this.config.mainPosX, this.config.mainPosY, backgroundTop.Width, totalBackgroundSize, false, true))
-                {
-                    draggingBox = true;
-                    globalChangeColor = Color.DarkGray;
-                }
-
-                // Decrease Button Clicked
-                if (e.Button == SButton.MouseLeft && ButtonCheck(mousePos, 0, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height) && this.config.mainScale > 1)
-                {
-                    decreaseSizeButtonColor = Color.White;
-                    increaseSizeButtonColor = Color.White;
-                    this.config.mainScale -= 1;
-                    if (this.config.mainScale == 1)
-                        decreaseSizeButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-                    ConfigSave();
-                }
-
-                // Increase Button Clicked
-                if (e.Button == SButton.MouseLeft && ButtonCheck(mousePos, 1, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height) && this.config.mainScale < 5)
-                {
-                    increaseSizeButtonColor = Color.White;
-                    decreaseSizeButtonColor = Color.White;
-                    this.config.mainScale += 1;
-                    if (this.config.mainScale == 5)
-                        increaseSizeButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-                    ConfigSave();
-                }
-
-                // Background Toggle Button Clicked
-                if (e.Button == SButton.MouseLeft && ButtonCheck(mousePos, 2, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height))
-                {
-                    if (this.config.ShowBoxBackground)
-                    {
-                        this.config.ShowBoxBackground = false;
-                        backgroundButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-                    }
-                    else
-                    {
-                        this.config.ShowBoxBackground = true;
-                        backgroundButtonColor = Color.White;
-                    }
-                    ConfigSave();
-                }
-
-                // Level Up Toggle Button Clicked
-                if (e.Button == SButton.MouseLeft && ButtonCheck(mousePos, 3, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height))
-                {
-                    if (this.config.ShowLevelUp)
-                    {
-                        this.config.ShowLevelUp = false;
-                        levelUpButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-                        Game1.addHUDMessage(new HUDMessage("Level up popup DISABLED", 3));
-                    }
-                    else
-                    {
-                        this.config.ShowLevelUp = true;
-                        levelUpButtonColor = Color.White;
-                        Game1.addHUDMessage(new HUDMessage("Level up popup ENABLED", 3));
-                    }
-                    ConfigSave();
-                }
-
-                // Experience Toggle Button Clicked
-                if (e.Button == SButton.MouseLeft && ButtonCheck(mousePos, 4, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height))
-                {
-                    if (this.config.ShowExperienceInfo)
-                    {
-                        this.config.ShowExperienceInfo = false;
-                        experienceButtonColor = MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f);
-                    }
-                    else
-                    {
-                        this.config.ShowExperienceInfo = true;
-                        experienceButtonColor = Color.White;
-                    }
-                    ConfigSave();
-                }
-
-            }
-        }
-
-        private void onButtonReleased(object sender, ButtonReleasedEventArgs e)
-        {
-            if (!Context.IsWorldReady || Game1.CurrentEvent != null) return;
-
-            if (inConfigMode)
-            {
-                //Box release check
-                if (e.Button == SButton.MouseLeft && draggingBox)
-                {
-                    draggingBox = false;
-                    globalChangeColor = Color.White;
-                    ConfigSave();
-                }
-            }
-        }
-
-        private void onPlayerWarped(object sender, WarpedEventArgs e)
-        {
-            configButtonPosX = MyHelper.AdjustPositionMineLevelWidth(configButtonPosX, e.NewLocation, defaultButtonPosX);
         }
 
         #endregion
@@ -912,19 +422,6 @@ namespace AbilitiesExperienceBars
             else if (this.config.popupScale > 5)
                 this.config.popupScale = 5;
 
-            // Adjust Background Button color
-            decreaseSizeButtonColor = this.config.mainScale == 1 ? MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f) : Color.White;
-            increaseSizeButtonColor = this.config.mainScale == 5 ? MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f) : Color.White;
-
-            // Adjust Background Button color
-            levelUpButtonColor = !this.config.ShowBoxBackground ? MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f) : Color.White;
-
-            // Adjust Level up Button color
-            levelUpButtonColor = !this.config.ShowLevelUp ? MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f) : Color.White;
-
-            // Adjust Experience Button color
-            experienceButtonColor = !this.config.ShowExperienceInfo ? MyHelper.ChangeColorIntensity(Color.DarkGray, 1, 0.7f) : Color.White;
-
             // Level up message duration catch
             if (this.config.LevelUpMessageDuration < 1)
                 this.config.LevelUpMessageDuration = 1;
@@ -937,35 +434,6 @@ namespace AbilitiesExperienceBars
             this.config.UITheme ??= "Vanilla";
 
             ConfigSave();
-        }
-
-        private void ConfigReset()
-        {
-            // Experience Bar
-            this.config.ShowUI = true;
-            this.config.ShowBoxBackground = true;
-            this.config.ShowExperienceInfo = true;
-            this.config.mainPosX = 25;
-            this.config.mainPosY = 125;
-            this.config.mainScale = 3;
-
-            // Popup Settings
-            this.config.ShowExpPopup = false;
-            this.config.ShowExpPopupTest = false;
-            this.config.ShowExperiencePopupInfo = true;
-            this.config.PopupMessageDuration = 4;
-            this.config.popupPosX = 25;
-            this.config.popupPosY = 800;
-            this.config.popupScale = 3;
-
-            // Level Up
-            this.config.ShowLevelUp = true;
-            this.config.LevelUpSound = true;
-            this.config.LevelUpMessageDuration = 4;
-
-            // Save Info
-            ConfigSave();
-            ConfigAdjust();
         }
 
         #endregion
@@ -994,43 +462,54 @@ namespace AbilitiesExperienceBars
 
         private void LoadTextures()
         {
-            // Load Images
+            // Load Theme
             string uiPath = config.UITheme == null ? $"assets/ui/themes/Vanilla.png" : $"assets/ui/themes/{config.UITheme}.png";
             barSheet = Helper.ModContent.Load<Texture2D>(uiPath);
-            iconSheet = Helper.ModContent.Load<Texture2D>("assets/ui/icons.png");
 
+            // Icons and Bar Filler
+            iconSheet = Helper.ModContent.Load<Texture2D>("assets/ui/icons.png");
             barFiller = Helper.ModContent.Load<Texture2D>("assets/ui/barFiller.png");
-            backgroundConfig = Helper.ModContent.Load<Texture2D>("assets/ui/backgroundConfig.png");
         }
 
         private void LoadSkills()
         {
+            // Setup API
+            bool levelExtended = false;
+            if (this.Helper.ModRegistry.IsLoaded("GoldstoneBosonMeadows.LevelForever"))
+                levelExtended = true;
+            var spaceCoreAPI = Helper.ModRegistry.GetApi<ISpaceCoreApi>("spacechase0.SpaceCore");
+
             // Add Base Skills
-            playerSkills.Add(new SkillEntry(Helper, "farming", 1, new Color(115, 150, 56)));
-            playerSkills.Add(new SkillEntry(Helper, "fishing", 2, new Color(117, 150, 150)));
-            playerSkills.Add(new SkillEntry(Helper, "foraging", 6, new Color(145, 102, 0)));
-            playerSkills.Add(new SkillEntry(Helper, "mining", 3, new Color(150, 80, 120)));
-            playerSkills.Add(new SkillEntry(Helper, "combat", 4, new Color(150, 31, 0)));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "farming", 1, iconSheet, new Color(115, 150, 56), levelExtended));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "fishing", 2, iconSheet, new Color(117, 150, 150), levelExtended));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "foraging", 6, iconSheet, new Color(145, 102, 0), levelExtended));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "mining", 3, iconSheet, new Color(150, 80, 120), levelExtended));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "combat", 4, iconSheet, new Color(150, 31, 0), levelExtended));
 
             // Mod Compatibility
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.LuckSkill"))
-                playerSkills.Add(new SkillEntry(Helper, "luck", 5, new Color(150, 150, 0)));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "luck", 5, iconSheet, new Color(150, 150, 0), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
-                playerSkills.Add(new SkillEntry(Helper, "cooking", 12, new Color(165, 100, 30)));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "cooking", 12, iconSheet, new Color(196, 76, 255), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("moonslime.CookingSkill"))
-                playerSkills.Add(new SkillEntry(Helper, "moonslime.Cooking", 10, new Color(165, 100, 30)));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Cooking", 10, iconSheet, new Color(196, 76, 255), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
-                playerSkills.Add(new SkillEntry(Helper, "blueberry.LoveOfCooking.CookingSkill", 11, new Color(150, 55, 5)));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "blueberry.LoveOfCooking.CookingSkill", 11, iconSheet, new Color(57, 135, 214), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("moonslime.ArchaeologySkill"))
-                playerSkills.Add(new SkillEntry(Helper, "moonslime.Archaeology", 7, new Color(84, 32, 0)));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Archaeology", 7, iconSheet, new Color(205, 127, 50), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("drbirbdev.SocializingSkill"))
-                playerSkills.Add(new SkillEntry(Helper, "drbirbdev.Socializing", 9, new Color(221, 0, 59)));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Socializing", 9, iconSheet, new Color(221, 0, 59), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("Achtuur.StardewTravelSkill"))
-                playerSkills.Add(new SkillEntry(Helper, "Achtuur.Travelling", 13, new Color(73, 100, 98)));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "Achtuur.Travelling", 13, iconSheet, new Color(100, 189, 132), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("drbirbdev.BinningSkill"))
-                playerSkills.Add(new SkillEntry(Helper, "drbirbdev.Binning", 8, new Color(60, 60, 77)));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Binning", 8, iconSheet, new Color(60, 60, 77), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-                playerSkills.Add(new SkillEntry(Helper, "magic", 14, new Color(155, 25, 135)));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "magic", 14, iconSheet, new Color(0, 66, 255), levelExtended));
+
+            // Add custom skills not accounted for
+            if (spaceCoreAPI != null ) 
+                foreach (string skillID in spaceCoreAPI.GetCustomSkills())
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, skillID, -1, null, new Color(210, 210, 210), levelExtended));
         }
 
         #endregion
@@ -1056,10 +535,10 @@ namespace AbilitiesExperienceBars
             }
 
             // Check for player mastery
-            if (!masteryProcessed && playerSkills.Where(x => (masterySkills.Contains(x.skillID)) && x.currentLevel >= 10).Count() == 5)
+            if (!masteryProcessed && playerSkills.Where(x => x.isMastered).Count() == 5)
             {
-                playerSkills.RemoveAll(s => masterySkills.Contains(s.skillID));
-                playerSkills.Insert(0, new SkillEntry(Helper, "mastery", 15, new Color(39, 185, 101)));
+                playerSkills.Insert(0, new SkillEntry(null, "mastery", 15, iconSheet, new Color(39, 185, 101), false));
+                playerSkills[0].SetSkillData(false);
                 masteryProcessed = true;
             }
         }
@@ -1213,9 +692,16 @@ namespace AbilitiesExperienceBars
                 {
                     // Show level up information
                     if (this.config.SmallIcons)
-                        levelUpSource = sh.smallIcon;
+                    {
+                        levelUpIcon = sh.smallIcon;
+                        levelUpRectangle = sh.smallIconRectangle;
+                    }
                     else
-                        levelUpSource = sh.bigIcon;
+                    {
+                        levelUpIcon = sh.bigIcon;
+                        levelUpRectangle = sh.bigIconRectangle;
+                    }
+
                     levelUpMessage = Helper.Translation.Get("LevelUpMessage");
                     timeLeft = this.config.LevelUpMessageDuration * 60;
                     canShowLevelUp = true;
@@ -1252,6 +738,125 @@ namespace AbilitiesExperienceBars
 
         #region // UI Functions
 
+        private void ExperienceBar(SkillEntry se, SpriteBatch b, int barPosX, int barPosY)
+        {
+            //Draw bars background
+            b.Draw(barSheet,
+                new Rectangle(barPosX, barPosY, backgroundBar.Width * this.config.mainScale, backgroundBar.Height * this.config.mainScale),
+                backgroundBar,
+                globalChangeColor);
+
+            // Draw icons
+            if (config.SmallIcons)
+                b.Draw(se.smallIcon,
+                    new Rectangle(barPosX + (6 * this.config.mainScale), barPosY + (6 * this.config.mainScale), 10 * this.config.mainScale, 10 * this.config.mainScale),
+                    se.smallIconRectangle,
+                    globalChangeColor);
+            else
+                b.Draw(se.bigIcon,
+                    new Rectangle(barPosX + (3 * this.config.mainScale), barPosY + (3 * this.config.mainScale), 16 * this.config.mainScale, 16 * this.config.mainScale),
+                    se.bigIconRectangle,
+                    globalChangeColor);
+
+            // Draw level text
+            DrawLevel(b,
+                se.currentLevel,
+                se.maxLevel,
+                barPosX + ((se.currentLevel > 9 && se.currentLevel != se.maxLevel ? 25 : 24) * this.config.mainScale),
+                barPosY + ((se.currentLevel > 9 && se.currentLevel != se.maxLevel ? 11 : 7) * this.config.mainScale),
+                globalChangeColor,
+                se.LevelTextScale(this.config.mainScale));
+
+            // Draw Experience Bars
+            Color barColor = se.currentLevel >= se.maxLevel ? se.skillFinalColor : se.skillColor;
+            b.Draw(barFiller,
+                se.GetExperienceBar(new Vector2(barPosX + (37 * this.config.mainScale), barPosY + (6 * this.config.mainScale)),
+                    new Vector2(58, barFiller.Height),
+                    this.config.mainScale),
+                barColor);
+
+            // Draw Experience Text
+            if (this.config.ShowExperienceInfo)
+            {
+                byte alpha = se.currentLevel < se.maxLevel ? se.skillColor.A : se.skillFinalColor.A;
+                Color actualColor = se.currentLevel < se.maxLevel ? se.skillColor : se.skillFinalColor;
+
+                // Add to the X based on scale
+                int expAddX = 6;
+                if (this.config.mainScale == 2) expAddX = 5;
+                else if (this.config.mainScale == 1) expAddX = 4;
+
+                b.DrawString(Game1.dialogueFont,
+                    se.GetExperienceText(this.config.mainScale),
+                    new Vector2(barPosX + (37 * this.config.mainScale), barPosY + (expAddX * this.config.mainScale)),
+                    MyHelper.ChangeColorIntensity(actualColor, 0.45f, alpha), 0f, Vector2.Zero,
+                    se.ExperienceTextScale(this.config.mainScale), SpriteEffects.None, 1);
+            }
+
+            // Gained Experience Window
+            if (se.actualExpGainedMessage && this.config.ShowExperienceInfo)
+            {
+                b.Draw(barSheet,
+                    new Rectangle(barPosX + expAdvicePositionX,
+                        barPosY + ((backgroundBar.Height * this.config.mainScale) / 2) - ((backgroundExp.Height * this.config.mainScale) / 2),
+                        backgroundExp.Width * this.config.mainScale,
+                        backgroundExp.Height * this.config.mainScale),
+                    backgroundExp,
+                    MyHelper.ChangeColorIntensity(globalChangeColor, 1, se.expAlpha));
+
+                Vector2 centralizedStringPos = MyHelper.GetStringCenter(se.expGained.ToString(), Game1.dialogueFont);
+                b.DrawString(Game1.dialogueFont,
+                    $"+{se.expGained}",
+                    new Vector2(barPosX + expAdvicePositionX + ((backgroundExp.Width * this.config.mainScale) / 2) - centralizedStringPos.X,
+                        barPosY + (6 * this.config.mainScale)),
+                    MyHelper.ChangeColorIntensity(se.skillRestorationColor, 0.45f, se.expAlpha),
+                    0f,
+                    Vector2.Zero,
+                    se.ExperienceTextScale(this.config.mainScale),
+                    SpriteEffects.None, 1);
+            }
+        }
+
+        private void ToggleUI()
+        {
+            this.config.ShowUI = !this.config.ShowUI;
+            ConfigSave();
+        }
+
+        public void DrawLevel(SpriteBatch b, int level, int maxLevel, int x, int y, Color c, float scale)
+        {
+            // Max Level, show a star
+            if (level == maxLevel)
+                b.Draw(Game1.mouseCursors, new Rectangle(x, y, 8 * this.config.mainScale, 8 * this.config.mainScale), new Rectangle(346, 392, 8, 8), c);
+
+            // Level 10 - 99
+            else if (level >= 10)
+            {
+                // Left Digit
+                int digitLeft = level / 10;
+                int imageX1 = digitLeft <= 5 ? 512 + digitLeft * 8 : 512 + (digitLeft - 6) * 8;
+                int imageY1 = digitLeft <= 5 ? 128 : 136;
+
+                // Right Digit
+                int digitRight = level % 10;
+                int imageX2 = digitRight <= 5 ? 512 + digitRight * 8 : 512 + (digitRight - 6) * 8;
+                int imageY2 = digitRight <= 5 ? 128 : 136;
+
+                // Draw Numbers
+                b.Draw(Game1.mouseCursors, new Vector2(x, y), new Rectangle(imageX1, imageY1, 8, 8), c, 0f, new Vector2(4f, 4f), 4f * scale, SpriteEffects.None, 0);
+                b.Draw(Game1.mouseCursors, new Vector2(x + (6 * this.config.mainScale), y), new Rectangle(imageX2, imageY2, 8, 8), c, 0f, new Vector2(4f, 4f), 4f * scale, SpriteEffects.None, 0);
+            }
+
+            // Level 0 - 9
+            else
+            {
+                // Single Digit Number
+                int imageX = level <= 5 ? 512 + level * 8 : 512 + (level - 6) * 8;
+                int imageY = level <= 5 ? 128 : 136;
+                b.Draw(Game1.mouseCursors, new Rectangle(x, y, 8 * this.config.mainScale, 8 * this.config.mainScale), new Rectangle(imageX, imageY, 8, 8), c);
+            }
+        }
+
         private void RepositionExpInfo()
         {
             if (!Context.IsWorldReady) return;
@@ -1260,13 +865,21 @@ namespace AbilitiesExperienceBars
             if (rightPosX >= Game1.uiViewport.Width - (backgroundExp.Width * this.config.mainScale))
                 expAdvicePositionX = -(backgroundExp.Width * this.config.mainScale + (10 * this.config.mainScale));
             else
-                expAdvicePositionX = backgroundTop.Width * this.config.mainScale + 1;
+                expAdvicePositionX = (backgroundTop.Width * this.config.mainScale) + 1;
         }
 
-        private void ToggleUI()
+        public Vector2 Animate(Vector2 boxPos, Vector2 dirTo, float velocity, string dirName)
         {
-            this.config.ShowUI = !this.config.ShowUI;
-            ConfigSave();
+            if (dirName == "top")
+                return boxPos.Y > dirTo.Y ? new Vector2(boxPos.X, boxPos.Y -= velocity) : new Vector2(boxPos.X, dirTo.Y);
+            else if (dirName == "bottom")
+                return boxPos.Y > dirTo.Y ? new Vector2(boxPos.X, boxPos.Y += velocity) : new Vector2(boxPos.X, dirTo.Y);
+            else if (dirName == "left")
+                return boxPos.X > dirTo.X ? new Vector2(boxPos.X -= velocity, boxPos.Y) : new Vector2(dirTo.X, dirTo.Y);
+            else if (dirName == "right")
+                return boxPos.X < dirTo.X ? new Vector2(boxPos.X += velocity, boxPos.Y) : new Vector2(dirTo.X, dirTo.Y);
+            else
+                return boxPos;
         }
 
         private void AnimateThings()
@@ -1277,7 +890,7 @@ namespace AbilitiesExperienceBars
             {
                 if (levelUpPosHolder != animDestPosLevelUp)
                 {
-                    levelUpPosHolder = AnimController.Animate(levelUpPosHolder, animDestPosLevelUp, 8f, animLevelUpDir);
+                    levelUpPosHolder = Animate(levelUpPosHolder, animDestPosLevelUp, 8f, animLevelUpDir);
                     levelUpPosY = (int)levelUpPosHolder.Y;
                 }
                 else
@@ -1288,84 +901,10 @@ namespace AbilitiesExperienceBars
             }
         }
 
-        private void CheckMousePosition()
+        private int AdjustBackgroundSize(int barQuantity, int barHeight, int barSpacement)
         {
-            if (!Context.IsWorldReady && Game1.CurrentEvent == null) return;
-
-            Vector2 mousePos;
-            mousePos.X = Game1.getMousePosition(true).X;
-            mousePos.Y = Game1.getMousePosition(true).Y;
-            int totalBackgroundSize = BarController.AdjustBackgroundSize(playerSkills.Count, backgroundBar.Height * this.config.mainScale, barSpacement) + (backgroundTop.Height * this.config.mainScale) + (backgroundBottom.Height * this.config.mainScale);
-
-            // Reset Button
-            if (ButtonCheck(mousePos, 3, 0, configButtonPosX, configButtonPosY, buttonReset.Width, buttonReset.Height, true))
-                ActionsBlock();
-
-            // Config Button
-            else if (ButtonCheck(mousePos, 0, 0, configButtonPosX, configButtonPosY, buttonConfig.Width, buttonConfig.Height))
-                ActionsBlock();
-
-            // Toggle UI
-            else if (ButtonCheck(mousePos, 3, 0, configButtonPosX, configButtonPosY, buttonConfig.Width, buttonConfig.Height))
-                ActionsBlock();
-
-            // Background Select
-            else if (ButtonCheck(mousePos, 0, 0, this.config.mainPosX, this.config.mainPosY, backgroundTop.Width, totalBackgroundSize, true, true))
-                ActionsBlock();
-
-            // Decrease Scale Button
-            else if (ButtonCheck(mousePos, 0, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height, true))
-                ActionsBlock();
-
-            // Increase Scale Button
-            else if (ButtonCheck(mousePos, 1, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height, true))
-                ActionsBlock();
-
-            // Background Toggle
-            else if (ButtonCheck(mousePos, 2, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height, true))
-                ActionsBlock();
-
-            // Level Up Toggle
-            else if (ButtonCheck(mousePos, 3, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height, true))
-                ActionsBlock();
-
-            // Experience Toggle
-            else if (ButtonCheck(mousePos, 4, 1, this.config.mainPosX, this.config.mainPosY, buttonDecrease.Width, buttonDecrease.Height, true))
-                ActionsBlock();
-
-            // Unblock
-            else
-                ActionsUnblock();
-        }
-
-        private bool ButtonCheck(Vector2 mousePos, int xIndex, int yIndex, int xPos, int yPos, int xWidth, int yHeight, bool configCheck = false, bool backgroundCheck = false)
-        {
-            // If checking background
-            if (backgroundCheck)
-                if (mousePos.X >= xPos && mousePos.X <= xPos + (xWidth * this.config.mainScale) &&
-                    mousePos.Y >= yPos && mousePos.Y <= yPos + yHeight &&
-                    (configCheck && inConfigMode || !configCheck))
-                    return true;
-                else
-                    return false;
-
-            // Checking Buttons
-            if (mousePos.X >= xPos + mainX[xIndex] && mousePos.X <= xPos + mainX[xIndex] + (xWidth * 3) &&
-                mousePos.Y >= yPos + mainY[yIndex] && mousePos.Y <= yPos + mainY[yIndex] + (yHeight * 3) &&
-                (configCheck && inConfigMode || !configCheck))
-                return true;
-            else
-                return false;
-        }
-
-        private static void ActionsBlock()
-        {
-            Game1.player.canOnlyWalk = true;
-        }
-
-        private static void ActionsUnblock()
-        {
-            Game1.player.canOnlyWalk = false;
+            int size = (barSpacement + barHeight) * barQuantity;
+            return size;
         }
 
         #endregion

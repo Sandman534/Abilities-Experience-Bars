@@ -5,13 +5,10 @@ namespace AbilitiesExperienceBars
     public class ModConfig
     {
         public SButton ToggleKey { get; set; }
-        public SButton ConfigKey { get; set; }
-        public SButton ResetKey { get; set; }
 
         public string UITheme { get; set; }
         public bool SmallIcons { get; set; }
 
-        public bool ShowButtons { get; set; }
         public bool ShowExperienceInfo { get; set; }
         public bool ShowBoxBackground { get; set; }
         public bool ShowLevelUp { get; set; }
