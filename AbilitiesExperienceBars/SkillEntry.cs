@@ -250,6 +250,11 @@ namespace AbilitiesExperienceBars
 
         }
 
+        public bool DisplaySkill(bool enabled)
+        {
+            return enabled && currentLevel >= maxLevel ? false : true;
+        }
+
         private void SetData(int level, int exp, bool current)
         {
             if (current)

@@ -14,6 +14,8 @@
   "ShowUIT": "Controls the display of the window",
   "ShowBoxBackground": "Window Background",
   "ShowBoxBackgroundT": "Switch the box background",
+  "HideExperienceMax": "Hide Max Level Skills",
+  "HideExperienceMaxT": "Will stop the skill from showing once its hit its max level",
   "ShowExperienceInfo": "Experience Text",
   "ShowExperienceInfoT": "Show experience numbers on the skill bar",
   "ShowExperienceGains": "Experience Gain Window",

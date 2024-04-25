@@ -1,11 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Graphics.PackedVector;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -158,6 +156,13 @@ namespace AbilitiesExperienceBars
                 );
                 configMenu.AddBoolOption(
                     mod: ModManifest,
+                    name: () => Helper.Translation.Get("HideExperienceMax"),
+                    tooltip: () => Helper.Translation.Get("HideExperienceMaxT"),
+                    getValue: () => config.HideExperienceMax,
+                    setValue: value => config.HideExperienceMax = value
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
                     name: () => Helper.Translation.Get("ShowExperienceInfo"),
                     tooltip: () => Helper.Translation.Get("ShowExperienceInfoT"),
                     getValue: () => config.ShowExperienceInfo,
@@ -206,6 +211,13 @@ namespace AbilitiesExperienceBars
                     tooltip: () => Helper.Translation.Get("ShowPopupT"),
                     getValue: () => config.ShowExpPopup,
                     setValue: value => config.ShowExpPopup = value
+                );
+                configMenu.AddBoolOption(
+                    mod: ModManifest,
+                    name: () => Helper.Translation.Get("HideExperienceMax"),
+                    tooltip: () => Helper.Translation.Get("HideExperienceMaxT"),
+                    getValue: () => config.HideExperiencePopupMax,
+                    setValue: value => config.HideExperiencePopupMax = value
                 );
                 configMenu.AddBoolOption(
                     mod: ModManifest,
@@ -335,7 +347,7 @@ namespace AbilitiesExperienceBars
             }
 
             // Experience Popup
-            if (canCountPopupTimer && popupSkill != null && this.config.ShowExpPopup && popupSkill.currentLevel < popupSkill.maxLevel)
+            if (this.config.ShowExpPopup && canCountPopupTimer && popupSkill != null)
                 ExperienceBar(popupSkill, e.SpriteBatch, this.config.popupPosX, config.popupPosY, this.config.popupScale, this.config.ShowExperiencePopupInfo, this.config.ShowExperiencePopupGain, true);
 
             if (!this.config.ShowUI) return;
@@ -364,6 +376,10 @@ namespace AbilitiesExperienceBars
             int barPosY = this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + (barSpacement / 2);
             foreach (SkillEntry se in playerSkills)
             {
+                // Do not display the skill
+                if (!se.DisplaySkill(this.config.HideExperienceMax)) continue;
+
+                // Display experience bar and adjust position for next run
                 ExperienceBar(se, e.SpriteBatch, barPosX, barPosY, this.config.mainScale, this.config.ShowExperienceInfo, this.config.ShowExperienceGain, false);
                 barPosY += barSpacement + (backgroundBar.Height * this.config.mainScale);
             }
@@ -380,8 +396,10 @@ namespace AbilitiesExperienceBars
             // Reset player skills   
             playerSkills = new List<SkillEntry>();
 
-            // Set Load Flag for later data
+            // Set All Flags
             loadedSaveFlag = false;
+            masteryProcessed = false;
+            sampleRunOnce = false;
         }
 
         private void onUpdate(object sender, UpdateTickedEventArgs e)
@@ -586,14 +604,14 @@ namespace AbilitiesExperienceBars
 
         private void CheckExperienceGain()
         {
-            foreach (SkillEntry sh in playerSkills)
+            foreach (SkillEntry se in playerSkills)
             {
-                sh.GainExperience();
+                se.GainExperience();
 
                 // Show popup window
-                if (sh.expIncreasing && this.config.ShowExpPopup) 
+                if (se.expIncreasing && this.config.ShowExpPopup && se.DisplaySkill(this.config.HideExperiencePopupMax)) 
                 {
-                    popupSkill = sh;
+                    popupSkill = se;
                     timeLeftPopup = this.config.PopupMessageDuration * 60;
                     canCountPopupTimer = true;
 
