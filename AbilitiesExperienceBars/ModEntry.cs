@@ -516,32 +516,40 @@ namespace AbilitiesExperienceBars
                 levelExtended = true;
             spaceCoreAPI = Helper.ModRegistry.GetApi<ISpaceCoreApi>("spacechase0.SpaceCore");
 
-            // Add Base Skills
+            // Base Skills
             playerSkills.Add(new SkillEntry(spaceCoreAPI, "farming", 1, iconSheet, new Color(115, 150, 56), levelExtended));
             playerSkills.Add(new SkillEntry(spaceCoreAPI, "fishing", 2, iconSheet, new Color(117, 150, 150), levelExtended));
             playerSkills.Add(new SkillEntry(spaceCoreAPI, "foraging", 6, iconSheet, new Color(145, 102, 0), levelExtended));
             playerSkills.Add(new SkillEntry(spaceCoreAPI, "mining", 3, iconSheet, new Color(150, 80, 120), levelExtended));
             playerSkills.Add(new SkillEntry(spaceCoreAPI, "combat", 4, iconSheet, new Color(150, 31, 0), levelExtended));
 
-            // Mod Compatibility
+            // Spacechase Skill Mods
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.LuckSkill"))
                 playerSkills.Add(new SkillEntry(spaceCoreAPI, "luck", 5, iconSheet, new Color(150, 150, 0), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
                 playerSkills.Add(new SkillEntry(spaceCoreAPI, "cooking", 12, iconSheet, new Color(196, 76, 255), levelExtended));
-            if (this.Helper.ModRegistry.IsLoaded("moonslime.CookingSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Cooking", 10, iconSheet, new Color(196, 76, 255), levelExtended));
-            if (this.Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "blueberry.LoveOfCooking.CookingSkill", 11, iconSheet, new Color(57, 135, 214), levelExtended));
-            if (this.Helper.ModRegistry.IsLoaded("moonslime.ArchaeologySkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Archaeology", 7, iconSheet, new Color(205, 127, 50), levelExtended));
-            if (this.Helper.ModRegistry.IsLoaded("drbirbdev.SocializingSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Socializing", 9, iconSheet, new Color(221, 0, 59), levelExtended));
-            if (this.Helper.ModRegistry.IsLoaded("Achtuur.StardewTravelSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "Achtuur.Travelling", 13, iconSheet, new Color(100, 189, 132), levelExtended));
-            if (this.Helper.ModRegistry.IsLoaded("drbirbdev.BinningSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Binning", 8, iconSheet, new Color(60, 60, 77), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
                 playerSkills.Add(new SkillEntry(spaceCoreAPI, "magic", 14, iconSheet, new Color(0, 66, 255), levelExtended));
+
+            // MoonSlime Skill Mods
+            if (this.Helper.ModRegistry.IsLoaded("moonslime.CookingSkill"))
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Cooking", 10, iconSheet, new Color(196, 76, 255), levelExtended));
+            if (this.Helper.ModRegistry.IsLoaded("moonslime.ArchaeologySkill"))
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Archaeology", 7, iconSheet, new Color(205, 127, 50), levelExtended));
+            if (this.Helper.ModRegistry.IsLoaded("moonslime.Luck"))
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Luck", 21, iconSheet, new Color(150, 150, 0), levelExtended));
+
+            // drbirbdev Skill Mods
+            if (this.Helper.ModRegistry.IsLoaded("drbirbdev.SocializingSkill"))
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Socializing", 9, iconSheet, new Color(221, 0, 59), levelExtended));
+            if (this.Helper.ModRegistry.IsLoaded("drbirbdev.BinningSkill"))
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Binning", 8, iconSheet, new Color(60, 60, 77), levelExtended));
+
+            // Other Skills
+            if (this.Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "blueberry.LoveOfCooking.CookingSkill", 11, iconSheet, new Color(57, 135, 214), levelExtended));
+            if (this.Helper.ModRegistry.IsLoaded("Achtuur.StardewTravelSkill"))
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "Achtuur.Travelling", 13, iconSheet, new Color(100, 189, 132), levelExtended));
 
             // Sword and Sorcery
             SpecialSkillCheck();
