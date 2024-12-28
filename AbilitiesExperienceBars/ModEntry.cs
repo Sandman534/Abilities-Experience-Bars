@@ -75,7 +75,9 @@ namespace AbilitiesExperienceBars
         {
             "DestyNova.SwordAndSorcery.Rogue",
             "DestyNova.SwordAndSorcery.Bardics",
-            "DestyNova.SwordAndSorcery.Druidics"
+            "DestyNova.SwordAndSorcery.Druidics",
+            "DestyNova.SwordAndSorcery.Witchcraft",
+            "DestyNova.SwordAndSorcery.Paladin"
         };
 
         #endregion
@@ -563,8 +565,14 @@ namespace AbilitiesExperienceBars
                 if (!HasSkill("DestyNova.SwordAndSorcery.Bardics") && Game1.player.eventsSeen.Contains("SnS.Ch2.Hector.16"))
                     playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Bardics", 16, iconSheet, new Color(85, 33, 145), false));
 
-                if (!HasSkill("DestyNova.SwordAndSorcery.Druidics") && Game1.player.eventsSeen.Contains("SnS.Ch2.Hector.16"))
+                if (!HasSkill("DestyNova.SwordAndSorcery.Druidics") && Game1.player.eventsSeen.Contains("SnS.Ch3.Cirrus.14"))
                     playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Druidics", 17, iconSheet, new Color(48, 162, 218), false));
+
+                if (!HasSkill("DestyNova.SwordAndSorcery.Witchcraft") && Game1.player.eventsSeen.Contains("SnS.Ch4.Dandelion.6"))
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Witchcraft", 19, iconSheet, Color.IndianRed, false));
+
+                if (!HasSkill("DestyNova.SwordAndSorcery.Paladin") && Game1.player.eventsSeen.Any(e => e.StartsWith("SnS.Ch4.Intermission.")))
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Paladin", 20, iconSheet, Color.LightGray, false));
             }
         }
 
