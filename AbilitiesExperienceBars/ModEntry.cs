@@ -23,7 +23,8 @@ namespace AbilitiesExperienceBars
         private int expAdvicePopupPositionX;
 
         // Sprite Variables
-        private Texture2D iconSheet, barSheet, barFiller;
+        private Texture2D iconBigSheet, iconSmallSheet, barSheet, barFiller;
+        private List<Texture2D> iconSheets = new List<Texture2D>();
 
         // Sprite Locations
         private Rectangle backgroundTop = new(98, 0, 116, 5);
@@ -357,18 +358,27 @@ namespace AbilitiesExperienceBars
             // Draw Experience Window Background
             if (this.config.ShowBoxBackground)
             {
+                // Setup total count of displayed skills for background height
+                int skillCount = 0;
+                foreach (SkillEntry se in playerSkills)
+                {
+                    if (se.DisplaySkill(this.config.HideExperienceMax))
+                        skillCount++;
+                }
+
+                // Display the background
                 e.SpriteBatch.Draw(barSheet,
                     new Rectangle(this.config.mainPosX, this.config.mainPosY, backgroundTop.Width * this.config.mainScale, backgroundTop.Height * this.config.mainScale),
                     backgroundTop,
                     globalChangeColor);
 
                 e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale), backgroundTop.Width * this.config.mainScale, AdjustBackgroundSize(playerSkills.Count, backgroundBar.Height * this.config.mainScale, barSpacement)),
+                    new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale), backgroundTop.Width * this.config.mainScale, AdjustBackgroundSize(skillCount, backgroundBar.Height * this.config.mainScale, barSpacement)),
                     backgroundMiddle,
                     globalChangeColor);
 
                 e.SpriteBatch.Draw(barSheet,
-                    new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + AdjustBackgroundSize(playerSkills.Count, backgroundBar.Height * this.config.mainScale, barSpacement), backgroundTop.Width * this.config.mainScale, backgroundTop.Height * this.config.mainScale),
+                    new Rectangle(this.config.mainPosX, this.config.mainPosY + (backgroundTop.Height * this.config.mainScale) + AdjustBackgroundSize(skillCount, backgroundBar.Height * this.config.mainScale, barSpacement), backgroundTop.Width * this.config.mainScale, backgroundTop.Height * this.config.mainScale),
                     backgroundBottom,
                     globalChangeColor);
             }
@@ -504,8 +514,12 @@ namespace AbilitiesExperienceBars
             barSheet = Helper.ModContent.Load<Texture2D>(uiPath);
 
             // Icons and Bar Filler
-            iconSheet = Helper.ModContent.Load<Texture2D>("assets/ui/icons.png");
+            iconSmallSheet = Helper.ModContent.Load<Texture2D>("assets/ui/iconsSmall.png");
+            iconBigSheet = Helper.ModContent.Load<Texture2D>("assets/ui/iconsBig.png");
             barFiller = Helper.ModContent.Load<Texture2D>("assets/ui/barFiller.png");
+
+            iconSheets.Add(iconSmallSheet);
+            iconSheets.Add(iconBigSheet);
         }
 
         private void LoadSkills()
@@ -517,39 +531,42 @@ namespace AbilitiesExperienceBars
             spaceCoreAPI = Helper.ModRegistry.GetApi<ISpaceCoreApi>("spacechase0.SpaceCore");
 
             // Base Skills
-            playerSkills.Add(new SkillEntry(spaceCoreAPI, "farming", 1, iconSheet, new Color(115, 150, 56), levelExtended));
-            playerSkills.Add(new SkillEntry(spaceCoreAPI, "fishing", 2, iconSheet, new Color(117, 150, 150), levelExtended));
-            playerSkills.Add(new SkillEntry(spaceCoreAPI, "foraging", 6, iconSheet, new Color(145, 102, 0), levelExtended));
-            playerSkills.Add(new SkillEntry(spaceCoreAPI, "mining", 3, iconSheet, new Color(150, 80, 120), levelExtended));
-            playerSkills.Add(new SkillEntry(spaceCoreAPI, "combat", 4, iconSheet, new Color(150, 31, 0), levelExtended));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "farming", 1, iconSheets, new Color(115, 150, 56), levelExtended));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "fishing", 2, iconSheets, new Color(117, 150, 150), levelExtended));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "foraging", 6, iconSheets, new Color(145, 102, 0), levelExtended));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "mining", 3, iconSheets, new Color(150, 80, 120), levelExtended));
+            playerSkills.Add(new SkillEntry(spaceCoreAPI, "combat", 4, iconSheets, new Color(150, 31, 0), levelExtended));
 
             // Spacechase Skill Mods
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.LuckSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "luck", 5, iconSheet, new Color(150, 150, 0), levelExtended));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "luck", 5, iconSheets, new Color(150, 150, 0), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.CookingSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "cooking", 12, iconSheet, new Color(196, 76, 255), levelExtended));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "cooking", 12, iconSheets, new Color(196, 76, 255), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("spacechase0.Magic"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "magic", 14, iconSheet, new Color(0, 66, 255), levelExtended));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "magic", 14, iconSheets, new Color(0, 66, 255), levelExtended));
 
             // MoonSlime Skill Mods
             if (this.Helper.ModRegistry.IsLoaded("moonslime.CookingSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Cooking", 10, iconSheet, new Color(196, 76, 255), levelExtended));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Cooking", 10, iconSheets, new Color(196, 76, 255), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("moonslime.ArchaeologySkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Archaeology", 7, iconSheet, new Color(205, 127, 50), levelExtended));
-            if (this.Helper.ModRegistry.IsLoaded("moonslime.Luck"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Luck", 21, iconSheet, new Color(150, 150, 0), levelExtended));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Archaeology", 7, iconSheets, new Color(205, 127, 50), levelExtended));
+            if (this.Helper.ModRegistry.IsLoaded("moonslime.LuckSkill"))
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Luck", 21, iconSheets, new Color(150, 150, 0), levelExtended));
+            if (this.Helper.ModRegistry.IsLoaded("moonslime.SpookySkill"))
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "moonslime.Spooky", 22, iconSheets, new Color(205, 127, 50), levelExtended));
+
 
             // drbirbdev Skill Mods
             if (this.Helper.ModRegistry.IsLoaded("drbirbdev.SocializingSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Socializing", 9, iconSheet, new Color(221, 0, 59), levelExtended));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Socializing", 9, iconSheets, new Color(221, 0, 59), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("drbirbdev.BinningSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Binning", 8, iconSheet, new Color(60, 60, 77), levelExtended));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "drbirbdev.Binning", 8, iconSheets, new Color(60, 60, 77), levelExtended));
 
             // Other Skills
             if (this.Helper.ModRegistry.IsLoaded("blueberry.LoveOfCooking"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "blueberry.LoveOfCooking.CookingSkill", 11, iconSheet, new Color(57, 135, 214), levelExtended));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "blueberry.LoveOfCooking.CookingSkill", 11, iconSheets, new Color(57, 135, 214), levelExtended));
             if (this.Helper.ModRegistry.IsLoaded("Achtuur.StardewTravelSkill"))
-                playerSkills.Add(new SkillEntry(spaceCoreAPI, "Achtuur.Travelling", 13, iconSheet, new Color(100, 189, 132), levelExtended));
+                playerSkills.Add(new SkillEntry(spaceCoreAPI, "Achtuur.Travelling", 13, iconSheets, new Color(100, 189, 132), levelExtended));
 
             // Sword and Sorcery
             SpecialSkillCheck();
@@ -568,19 +585,19 @@ namespace AbilitiesExperienceBars
             if (this.Helper.ModRegistry.IsLoaded("KCC.SnS"))
             {
                 if (!HasSkill("DestyNova.SwordAndSorcery.Rogue") && Game1.player.eventsSeen.Contains("SnS.Ch1.Mateo.18"))
-                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Rogue", 18, iconSheet, new Color(252, 121, 27), false));
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Rogue", 18, iconSheets, new Color(252, 121, 27), false));
 
                 if (!HasSkill("DestyNova.SwordAndSorcery.Bardics") && Game1.player.eventsSeen.Contains("SnS.Ch2.Hector.16"))
-                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Bardics", 16, iconSheet, new Color(85, 33, 145), false));
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Bardics", 16, iconSheets, new Color(85, 33, 145), false));
 
                 if (!HasSkill("DestyNova.SwordAndSorcery.Druidics") && Game1.player.eventsSeen.Contains("SnS.Ch3.Cirrus.14"))
-                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Druidics", 17, iconSheet, new Color(48, 162, 218), false));
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Druidics", 17, iconSheets, new Color(48, 162, 218), false));
 
                 if (!HasSkill("DestyNova.SwordAndSorcery.Witchcraft") && Game1.player.eventsSeen.Contains("SnS.Ch4.Dandelion.6"))
-                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Witchcraft", 19, iconSheet, Color.IndianRed, false));
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Witchcraft", 19, iconSheets, Color.IndianRed, false));
 
                 if (!HasSkill("DestyNova.SwordAndSorcery.Paladin") && Game1.player.eventsSeen.Any(e => e.StartsWith("SnS.Ch4.Intermission.")))
-                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Paladin", 20, iconSheet, Color.LightGray, false));
+                    playerSkills.Add(new SkillEntry(spaceCoreAPI, "DestyNova.SwordAndSorcery.Paladin", 20, iconSheets, Color.LightGray, false));
             }
         }
 
@@ -612,7 +629,7 @@ namespace AbilitiesExperienceBars
             // Check for player mastery
             if (!masteryProcessed && playerSkills.Where(x => x.isMastered).Count() == 5)
             {
-                playerSkills.Insert(0, new SkillEntry(null, "mastery", 15, iconSheet, new Color(39, 185, 101), false));
+                playerSkills.Insert(0, new SkillEntry(null, "mastery", 15, iconSheets, new Color(39, 185, 101), false));
                 playerSkills[0].SetSkillData(false);
                 masteryProcessed = true;
             }

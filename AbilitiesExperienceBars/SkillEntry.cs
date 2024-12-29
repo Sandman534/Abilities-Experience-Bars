@@ -54,7 +54,7 @@ namespace AbilitiesExperienceBars
         // API Interface
         private ISpaceCoreApi _spaceCoreAPI;
 
-        public SkillEntry(ISpaceCoreApi spaceCoreAPI, string ID, int skillIndex, Texture2D skillIcon, Color skillColorCode, bool levelExtender)
+        public SkillEntry(ISpaceCoreApi spaceCoreAPI, string ID, int skillIndex, List<Texture2D> skillIcons, Color skillColorCode, bool levelExtender)
         {
             // Set the skill ID
             skillID = ID;
@@ -65,7 +65,7 @@ namespace AbilitiesExperienceBars
 
             // Load Skill Icon
             if (skillIndex > 0)
-                SetSkillIcon(skillIndex, skillIcon);
+                SetSkillIcon(skillIndex, skillIcons);
             else if (_spaceCoreAPI != null)
                 SetCustomSkillIcon();
                 
@@ -294,18 +294,18 @@ namespace AbilitiesExperienceBars
             bigIconRectangle = new(0, 0, 16, 16);
         }
 
-        private void SetSkillIcon(int skillIndex, Texture2D skillIcon)
+        private void SetSkillIcon(int skillIndex, List<Texture2D> skillIcons)
         {
             // Change the Y postion based on the skill index
             int xPosition = 10 * ((skillIndex % 6 > 0 ? skillIndex % 6 : 6) - 1);
-            int yPosition = 64 + (10 * (skillIndex % 6 > 0 ? skillIndex / 6 : (skillIndex / 6) - 1));
-            smallIcon = skillIcon;
+            int yPosition = 10 * (skillIndex % 6 > 0 ? skillIndex / 6 : (skillIndex / 6) - 1);
+            smallIcon = skillIcons[0];
             smallIconRectangle = new Rectangle(xPosition, yPosition, 10, 10);
 
             // Change the Y postion based on the skill index
             xPosition = 16 * ((skillIndex % 6 > 0 ? skillIndex % 6 : 6) - 1);
             yPosition = 16 * (skillIndex % 6 > 0 ? skillIndex / 6 : (skillIndex / 6) - 1);
-            bigIcon = skillIcon;
+            bigIcon = skillIcons[1];
             bigIconRectangle = new Rectangle(xPosition, yPosition, 16, 16);
         }
 
